@@ -14,6 +14,7 @@ export async function generarCodigoMfa(idUsuario) {
     }
 
     const codigo = randomInt(100000, 1000000).toString();
+    console.log(`[MFA DESARROLLO] Código del usuario ${idUsuario}: ${codigo}`);
     const codigoMfahash = await bcrypt.hash(codigo, 10); // Aplicar hash al código
 
     const fechaExpiracion = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos a partir de ahora
@@ -39,10 +40,12 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
         );
     }
 
-    if(!codigoMfa || typeof codigoMfa !== 'string' || codigoMfa.length !== 6) {
+    const codigoNormalizado = String(codigoMfa ?? "").trim();
+
+    if (!/^\d{6}$/.test(codigoNormalizado)) {
         throw createAuthError(
             "El código MFA proporcionado no es válido",
-            "CODIGO_MFA_INVALIDO"
+            "CODIGO_MFA_INVALIDO",
         );
     }
 
@@ -55,7 +58,7 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
         );
     }
 
-    const codigoValido = await bcrypt.compare(codigoMfa, challenge.codigo_hash);
+    const codigoValido = await bcrypt.compare(codigoNormalizado, challenge.codigo_hash);
     if (!codigoValido) {
         throw createAuthError(
             "El código MFA proporcionado no es válido",
