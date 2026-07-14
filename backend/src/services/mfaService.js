@@ -3,7 +3,10 @@ import bcrypt from "bcrypt";
 import { createCodigoMfaCode, getValidMfaChallenge, markMfaCodeAsUsed, invalidatePendingCodesByUserId } from '../repositories/mfaRepositorie.js';
 import { createAuthError } from '../utils/authError.js';
 import { getUserById } from '../repositories/authRepositorie.js';
+import { sendMfaCodeEmail } from './emailService.js';
 import jwt from 'jsonwebtoken';
+
+const MFA_EXPIRATION_MINUTES = 5;
 
 export async function generarCodigoMfa(idUsuario) {
     if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
@@ -17,7 +20,7 @@ export async function generarCodigoMfa(idUsuario) {
     console.log(`[MFA DESARROLLO] Código del usuario ${idUsuario}: ${codigo}`);
     const codigoMfahash = await bcrypt.hash(codigo, 10); // Aplicar hash al código
 
-    const fechaExpiracion = new Date(Date.now() + 5 * 60 * 1000); // 5 minutos a partir de ahora
+    const fechaExpiracion = new Date(Date.now() + MFA_EXPIRATION_MINUTES * 60 * 1000);
     console.log(`Cantidad de codigos invalidados para el usuario ${idUsuario}: ${await invalidatePendingCodesByUserId(idUsuario)}`);
 
     const challenge = await createCodigoMfaCode({ idUsuario, codigoMfahash, fechaExpiracion });
@@ -25,6 +28,23 @@ export async function generarCodigoMfa(idUsuario) {
         throw createAuthError(
             "No se pudo generar el código MFA",
             "GENERACION_CODIGO_FALLIDA"
+        );
+    }
+    
+    try {
+        const user = await getUserById(idUsuario);
+        await sendMfaCodeEmail({
+            correo: user.correo,
+            nombre: user.nombre,
+            codigo,
+            expirationMinutes: MFA_EXPIRATION_MINUTES,
+        });
+    } catch (error) {
+        console.error("Error al enviar el correo electrónico con el código MFA:", error);
+        await markMfaCodeAsUsed(challenge.id_codigo_mfa); // Marcar el código como utilizado si falla el envío del correo
+        throw createAuthError(
+            "No se pudo enviar el código MFA por correo electrónico",
+            "ENVIO_CORREO_FALLIDO"
         );
     }
 

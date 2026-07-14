@@ -23,6 +23,8 @@ const mockInvalidatePendingCodesByUserId = jest.fn();
 const mockGetUserById = jest.fn();
 const mockJwtSign = jest.fn();
 
+const mockSendMfaCodeEmail = jest.fn();
+
 jest.unstable_mockModule("node:crypto", () => ({
   randomInt: mockRandomInt,
 }));
@@ -54,6 +56,13 @@ jest.unstable_mockModule(
   "../../src/repositories/authRepositorie.js",
   () => ({
     getUserById: mockGetUserById,
+  }),
+);
+
+jest.unstable_mockModule(
+  "../../src/services/emailService.js",
+  () => ({
+    sendMfaCodeEmail: mockSendMfaCodeEmail,
   }),
 );
 
@@ -98,12 +107,26 @@ describe("mfaService - generarCodigoMfa", () => {
       utilizado: false,
     };
 
+    const usuario = {
+      id_usuario: 8,
+      rol: "CLIENTE",
+      nombre: "Aisler",
+      correo: "aisler@test.com",
+      activo: true,
+    };
     mockRandomInt.mockReturnValue(483921);
     mockBcryptHash.mockResolvedValue("hash-del-codigo");
     mockInvalidatePendingCodesByUserId.mockResolvedValue(2);
     mockCreateCodigoMfaCode.mockResolvedValue(
       challengeCreado,
     );
+    mockGetUserById.mockResolvedValue(usuario)
+
+    mockSendMfaCodeEmail.mockResolvedValue({
+      sent: true,
+      statusCode: 202,
+      messageId: "msg-id-123",
+    });
 
     const result = await generarCodigoMfa(8);
 
@@ -284,5 +307,36 @@ describe("mfaService - validateMfaChallenge", () => {
       user: usuario,
       token: "jwt-generado",
     });
+  });
+
+  test("invalida el desafío si SendGrid no envía el correo", async () => {
+    const challenge = {
+      id_codigo_mfa: 30,
+      id_usuario: 8,
+      fecha_expiracion: new Date(Date.now() + 300000),
+      utilizado: false,
+    };
+
+    mockRandomInt.mockReturnValue(483921);
+    mockBcryptHash.mockResolvedValue("hash-del-codigo");
+    mockInvalidatePendingCodesByUserId.mockResolvedValue(0);
+    mockCreateCodigoMfaCode.mockResolvedValue(challenge);
+
+    const sendGridError = new Error(
+      "No se pudo enviar el correo de verificación",
+    );
+
+    sendGridError.code = "ENVIO_CORREO_FALLIDO";
+
+    mockSendMfaCodeEmail.mockRejectedValue(sendGridError);
+    mockMarkMfaCodeAsUsed.mockResolvedValue(true);
+
+    await expect(
+      generarCodigoMfa(8),
+    ).rejects.toMatchObject({
+      code: "ENVIO_CORREO_FALLIDO",
+    });
+
+    expect(mockMarkMfaCodeAsUsed).toHaveBeenCalledWith(30);
   });
 });

@@ -4,8 +4,6 @@ import http from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import { initSocketServer } from './websocket/socketServer.js';
-import { sql, getConnection } from './config/database.js';
-import { getUsers, getUserByCorreo, createUser } from './repositories/authRepositorie.js';
 env.config();
 
 const app = express();

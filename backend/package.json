@@ -13,11 +13,13 @@
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch"
   },
   "dependencies": {
+    "@sendgrid/mail": "^8.1.6",
     "bcrypt": "^6.0.0",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "jsonwebtoken": "^9.0.3",
     "mssql": "^12.7.0",
+    "nodemailer": "^9.0.3",
     "ws": "^8.21.0"
   },
   "devDependencies": {
