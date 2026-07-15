@@ -1,5 +1,5 @@
 import sgMail from "@sendgrid/mail";
-import { createAuthError } from "../utils/authError.js";
+import { createNewError } from "../utils/reusableFunctions.js";
 import env from "dotenv";
 env.config();
 
@@ -25,7 +25,7 @@ export async function sendMfaCodeEmail({
   expirationMinutes = 5,
 }) {
   if (!correo || !codigo) {
-    throw createAuthError(
+    throw createNewError(
       "El correo y el código MFA son obligatorios",
       "DATOS_EMAIL_INCOMPLETOS",
     );
@@ -101,7 +101,7 @@ Si no intentaste iniciar sesión, puedes ignorar este mensaje.
       error.response?.body || error.message,
     );
 
-    throw createAuthError(
+    throw createNewError(
       "No se pudo enviar el correo de verificación",
       "ENVIO_CORREO_FALLIDO",
     );

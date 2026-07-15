@@ -303,10 +303,7 @@ describe("mfaService - validateMfaChallenge", () => {
       },
     );
 
-    expect(result).toEqual({
-      user: usuario,
-      token: "jwt-generado",
-    });
+    expect(result).toEqual("jwt-generado");
   });
 
   test("invalida el desafío si SendGrid no envía el correo", async () => {

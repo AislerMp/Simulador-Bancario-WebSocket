@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
 import bcrypt from "bcrypt";
 import { createCodigoMfaCode, getValidMfaChallenge, markMfaCodeAsUsed, invalidatePendingCodesByUserId } from '../repositories/mfaRepositorie.js';
-import { createAuthError } from '../utils/authError.js';
+import { createNewError } from '../utils/reusableFunctions.js';
 import { getUserById } from '../repositories/authRepositorie.js';
 import { sendMfaCodeEmail } from './emailService.js';
 import jwt from 'jsonwebtoken';
@@ -10,7 +10,7 @@ const MFA_EXPIRATION_MINUTES = 5;
 
 export async function generarCodigoMfa(idUsuario) {
     if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-        throw createAuthError(
+        throw createNewError(
         "El usuario indicado no es válido",
         "USUARIO_INVALIDO"
         );
@@ -25,14 +25,14 @@ export async function generarCodigoMfa(idUsuario) {
 
     const challenge = await createCodigoMfaCode({ idUsuario, codigoMfahash, fechaExpiracion });
     if (!challenge) {
-        throw createAuthError(
+        throw createNewError(
             "No se pudo generar el código MFA",
             "GENERACION_CODIGO_FALLIDA"
         );
     }
     
     try {
-        const user = await getUserById(idUsuario);
+        const user = await getUserById(challenge.id_usuario);
         await sendMfaCodeEmail({
             correo: user.correo,
             nombre: user.nombre,
@@ -42,7 +42,7 @@ export async function generarCodigoMfa(idUsuario) {
     } catch (error) {
         console.error("Error al enviar el correo electrónico con el código MFA:", error);
         await markMfaCodeAsUsed(challenge.id_codigo_mfa); // Marcar el código como utilizado si falla el envío del correo
-        throw createAuthError(
+        throw createNewError(
             "No se pudo enviar el código MFA por correo electrónico",
             "ENVIO_CORREO_FALLIDO"
         );
@@ -54,7 +54,7 @@ export async function generarCodigoMfa(idUsuario) {
 export async function validateMfaChallenge(idUsuario, codigoMfa) {
 
     if (!Number.isInteger(idUsuario) || idUsuario <= 0) {
-        throw createAuthError(
+        throw createNewError(
             "El usuario indicado no es válido",
             "USUARIO_INVALIDO"
         );
@@ -63,7 +63,7 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
     const codigoNormalizado = String(codigoMfa ?? "").trim();
 
     if (!/^\d{6}$/.test(codigoNormalizado)) {
-        throw createAuthError(
+        throw createNewError(
             "El código MFA proporcionado no es válido",
             "CODIGO_MFA_INVALIDO",
         );
@@ -72,7 +72,7 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
     const challenge = await getValidMfaChallenge(idUsuario);
 
     if (!challenge) {
-        throw createAuthError(
+        throw createNewError(
             "No hay un desafío MFA válido para este usuario",
             "DESAFIO_MFA_NO_ENCONTRADO"
         );
@@ -80,14 +80,14 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
 
     const codigoValido = await bcrypt.compare(codigoNormalizado, challenge.codigo_hash);
     if (!codigoValido) {
-        throw createAuthError(
+        throw createNewError(
             "El código MFA proporcionado no es válido",
             "CODIGO_MFA_INVALIDO"
         );
     }
 
     if(new Date() > new Date(challenge.fecha_expiracion)) {
-        throw createAuthError(
+        throw createNewError(
             "El código MFA ha expirado",
             "CODIGO_MFA_EXPIRADO"
         );
@@ -95,7 +95,7 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
 
     const markAsUsedResult = await markMfaCodeAsUsed(challenge.id_codigo_mfa);
     if (!markAsUsedResult) {
-        throw createAuthError(
+        throw createNewError(
             "No se pudo marcar el código MFA como utilizado",
             "MARCAR_CODIGO_FALLIDO"
         );
@@ -115,5 +115,5 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
         },
       );
       
-    return { user, token }; // Si todo es válido, retornamos el usuario y el token
+    return token; // Si todo es válido, retornamos el token
 }

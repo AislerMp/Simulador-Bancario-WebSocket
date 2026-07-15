@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { createAuthError } from "../utils/authError.js";
+import { createNewError } from "../utils/reusableFunctions.js";
 import { generarCodigoMfa } from "./mfaService.js";
 
 import {
@@ -12,7 +12,7 @@ dotenv.config();
 
 export async function login(correo, password) {
   if (!correo || !password) {
-    throw createAuthError(
+    throw createNewError(
       "Correo y contraseña son obligatorios",
       "DATOS_INCOMPLETOS",
     );
@@ -21,7 +21,7 @@ export async function login(correo, password) {
   const user = await getUserByCorreo(correo);
 
   if (!user) {
-    throw createAuthError(
+    throw createNewError(
       "Correo o contraseña incorrectos",
       "CREDENCIALES_INVALIDAS",
     );
@@ -30,14 +30,14 @@ export async function login(correo, password) {
   const isMatch = await bcrypt.compare(password, user.password_hash);
 
   if (!isMatch) {
-    throw createAuthError(
+    throw createNewError(
       "Correo o contraseña incorrectos",
       "CREDENCIALES_INVALIDAS",
     );
   }
 
   if (user.activo === false || user.activo === 0) {
-    throw createAuthError("El usuario está desactivado", "USUARIO_DESACTIVADO");
+    throw createNewError("El usuario está desactivado", "USUARIO_DESACTIVADO");
   }
 
   const mfaChallenge = await generarCodigoMfa(user.id_usuario);
@@ -46,7 +46,7 @@ export async function login(correo, password) {
 
 export async function register(user) {
   if (!user.nombre || !user.correo || !user.password) {
-    throw createAuthError(
+    throw createNewError(
       "Todos los campos son obligatorios",
       "DATOS_INCOMPLETOS",
     );
@@ -55,7 +55,7 @@ export async function register(user) {
   const existingUser = await getUserByCorreo(user.correo);
 
   if (existingUser) {
-    throw createAuthError(
+    throw createNewError(
       "El correo ya está registrado",
       "CORREO_YA_REGISTRADO",
     );
