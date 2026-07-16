@@ -1,34 +1,49 @@
-import { registerController, loginController, verifyMfaController } from "../controllers/authController.js";
+import {
+  registerController,
+  loginController,
+  verifyMfaController,
+} from "../controllers/authController.js";
 
 export async function handleMessage(ws, message) {
   console.log("Mensaje recibido:", message);
+  let response;
 
   switch (message.type) {
     case "PING":
-      ws.send(JSON.stringify({
+      response = {
         type: "PONG",
+        requestId: message.requestId ?? null,
         success: true,
-        message: "Respuesta desde el servidor"
-      }));
+        message: "Servidor activo",
+        data: null,
+        error: null,
+      };
       break;
+
     case "REGISTER":
-      const registerResponse = await registerController(message);
-      ws.send(JSON.stringify(registerResponse));
+      response = await registerController(message);
       break;
+
     case "LOGIN":
-      const loginResponse = await loginController(message);
-      ws.send(JSON.stringify(loginResponse));
+      response = await loginController(message);
       break;
+
     case "VERIFY_MFA":
-      const verifyMfaResponse = await verifyMfaController(message);
-      ws.send(JSON.stringify(verifyMfaResponse));
+      response = await verifyMfaController(message);
       break;
+
     default:
-      ws.send(JSON.stringify({
+      response = {
         type: "TIPO_NO_SOPORTADO",
+        requestId: message.requestId ?? null,
         success: false,
-        message: `El tipo de mensaje '${message.type}' no existe`
-      }));
+        message: `El tipo de mensaje '${message.type}' no está soportado`,
+        data: null,
+        error: {
+          code: "TIPO_NO_SOPORTADO",
+        },
+      };
       break;
   }
+  ws.send(JSON.stringify(response));
 }
