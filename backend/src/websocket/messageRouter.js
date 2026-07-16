@@ -45,6 +45,6 @@ export async function handleMessage(ws, message) {
       };
       break;
   }
-  console.log("Enviando respuesta:", response);
+  console.log("Enviando respuesta desde el backend:", response);
   ws.send(JSON.stringify(response));
 }

@@ -23,7 +23,6 @@ export async function getUserByCorreo(correo){
         .input("correo", sql.VarChar, correo)
         .query("Select TOP 1 * From Usuario Where correo = @correo");
 
-    console.log("Usuario obtenido por correo:", result.recordset[0]);
     return result.recordset[0] || null;
 }
 
@@ -32,7 +31,6 @@ export async function getUserById(id) {
     const result = await pool.request()
         .input("id", sql.Int, id)
         .query("Select TOP 1 * From Usuario Where id_usuario = @id");
-    console.log("Usuario obtenido por ID:", result.recordset[0]);
     return result.recordset[0] || null;
 }
 
