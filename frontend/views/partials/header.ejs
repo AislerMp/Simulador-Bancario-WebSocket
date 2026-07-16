@@ -1,0 +1,13 @@
+<header class="topbar">
+  <div class="topbar-content">
+    <a class="brand-link" href="<%= showLogout ? '/dashboard' : '/login' %>">
+      🏦 Simulador Bancario
+    </a>
+
+    <% if (showLogout) { %>
+      <form action="/logout" method="POST">
+        <button class="secondary-button" type="submit">Cerrar sesión</button>
+      </form>
+    <% } %>
+  </div>
+</header>

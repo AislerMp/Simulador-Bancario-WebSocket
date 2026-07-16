@@ -1,0 +1,27 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Bienvenido, <%= user.nombre %></h1>
+    <p>La autenticación con contraseña y MFA fue completada.</p>
+  </section>
+
+  <section class="grid">
+    <article class="info-card">
+      <h2>Información del usuario</h2>
+      <p><strong>Correo:</strong> <%= user.correo %></p>
+      <p><strong>Rol:</strong> <%= user.rol %></p>
+    </article>
+
+    <article class="info-card">
+      <h2>Siguiente etapa</h2>
+      <p>
+        Este espacio queda preparado para cuentas, saldos,
+        transferencias e historial.
+      </p>
+    </article>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

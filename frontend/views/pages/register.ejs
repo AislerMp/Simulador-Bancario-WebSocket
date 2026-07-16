@@ -1,0 +1,66 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card">
+    <div class="brand">Nueva cuenta</div>
+    <h1>Crear cuenta</h1>
+    <p class="subtitle">El registro público crea usuarios con rol CLIENTE.</p>
+
+    <%- include("../partials/message", { message, messageType }) %>
+
+    <form class="form" action="/register" method="POST">
+      <label>
+        Nombre completo
+        <input
+          type="text"
+          name="nombre"
+          value="<%= values.nombre || '' %>"
+          required
+          autocomplete="name"
+        >
+      </label>
+
+      <label>
+        Correo electrónico
+        <input
+          type="email"
+          name="correo"
+          value="<%= values.correo || '' %>"
+          required
+          autocomplete="email"
+        >
+      </label>
+
+      <label>
+        Contraseña
+        <input
+          type="password"
+          name="password"
+          minlength="6"
+          required
+          autocomplete="new-password"
+        >
+      </label>
+
+      <label>
+        Confirmar contraseña
+        <input
+          type="password"
+          name="confirmacion"
+          minlength="6"
+          required
+          autocomplete="new-password"
+        >
+      </label>
+
+      <button type="submit">Registrarme</button>
+    </form>
+
+    <p class="footer-text">
+      ¿Ya tienes cuenta? <a href="/login">Iniciar sesión</a>
+    </p>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

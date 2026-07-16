@@ -1,0 +1,36 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card">
+    <div class="brand">🔐 Verificación MFA</div>
+    <h1>Revisa tu correo</h1>
+    <p class="subtitle">
+      Enviamos un código de 6 dígitos a <strong><%= mfa.correo %></strong>.
+    </p>
+
+    <%- include("../partials/message", { message, messageType }) %>
+
+    <form class="form" action="/mfa" method="POST">
+      <label>
+        Código de verificación
+        <input
+          class="code-input"
+          type="text"
+          name="codigoMfa"
+          maxlength="6"
+          pattern="[0-9]{6}"
+          inputmode="numeric"
+          autocomplete="one-time-code"
+          required
+        >
+      </label>
+
+      <button type="submit">Verificar código</button>
+    </form>
+
+    <p class="footer-text">El código vence en 5 minutos.</p>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

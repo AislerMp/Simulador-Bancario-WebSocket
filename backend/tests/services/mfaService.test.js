@@ -150,6 +150,13 @@ describe("mfaService - generarCodigoMfa", () => {
       fechaExpiracion: fechaExpiracionEsperada,
     });
 
+    expect(mockSendMfaCodeEmail).toHaveBeenCalledWith({
+      correo: "aisler@test.com",
+      nombre: "Aisler",
+      codigo: "483921",
+      expirationMinutes: 5,
+    });
+
     expect(result).toEqual(challengeCreado);
   });
 
@@ -303,7 +310,16 @@ describe("mfaService - validateMfaChallenge", () => {
       },
     );
 
-    expect(result).toEqual("jwt-generado");
+    expect(result).toEqual({
+      user: {
+        idUsuario: 9,
+        rol: "CLIENTE",
+        nombre: "Aisler",
+        correo: "aisler@test.com",
+        activo: true,
+      },
+      token: "jwt-generado",
+    });
   });
 
   test("invalida el desafío si SendGrid no envía el correo", async () => {
@@ -318,6 +334,13 @@ describe("mfaService - validateMfaChallenge", () => {
     mockBcryptHash.mockResolvedValue("hash-del-codigo");
     mockInvalidatePendingCodesByUserId.mockResolvedValue(0);
     mockCreateCodigoMfaCode.mockResolvedValue(challenge);
+    mockGetUserById.mockResolvedValue({
+      id_usuario: 8,
+      rol: "CLIENTE",
+      nombre: "Aisler",
+      correo: "aisler@test.com",
+      activo: true,
+    });
 
     const sendGridError = new Error(
       "No se pudo enviar el correo de verificación",

@@ -102,18 +102,31 @@ export async function validateMfaChallenge(idUsuario, codigoMfa) {
     }
     
     const user = await getUserById(idUsuario);
+    if (!user) {
+        throw createNewError(
+        "No se encontró el usuario",
+        "USUARIO_INVALIDO",
+        );
+    }
+
+    const safeUser = {
+        idUsuario: user.id_usuario,
+        rol: user.rol,
+        nombre: user.nombre,
+        correo: user.correo,
+        activo: user.activo,
+    };
+
     const token = jwt.sign(
         {
-          idUsuario: user.id_usuario,
-          rol: user.rol,
-          nombre: user.nombre,
-          correo: user.correo,
+        idUsuario: safeUser.idUsuario,
+        rol: safeUser.rol,
+        nombre: safeUser.nombre,
+        correo: safeUser.correo,
         },
         process.env.JWT_SECRET,
-        {
-          expiresIn: "1h",
-        },
-      );
+        { expiresIn: "1h" },
+    );
       
-    return token; // Si todo es válido, retornamos el token
+    return { user: safeUser, token };
 }

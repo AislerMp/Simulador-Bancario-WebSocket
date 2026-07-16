@@ -5,7 +5,7 @@ import {
 } from "../controllers/authController.js";
 
 export async function handleMessage(ws, message) {
-  console.log("Mensaje recibido:", message);
+  console.log("Mensaje recibido del frontend:", message);
   let response;
 
   switch (message.type) {
@@ -45,5 +45,6 @@ export async function handleMessage(ws, message) {
       };
       break;
   }
+  console.log("Enviando respuesta:", response);
   ws.send(JSON.stringify(response));
 }

@@ -48,12 +48,12 @@ export async function loginController({ payload, requestId }) {
 
 export async function verifyMfaController({ payload, requestId }) {
     try {
-        const token = await validateMfaChallenge( Number(payload?.idUsuario), payload?.codigoMfa);
+        const result = await validateMfaChallenge( Number(payload?.idUsuario), payload?.codigoMfa);
         return createSuccessResponse({
             type: "VERIFY_MFA_RESPONSE",
             requestId,
             message: "Código MFA verificado exitosamente",
-            data: token,
+            data: result,
         });
     } catch (error) {
         return createErrorResponse({
