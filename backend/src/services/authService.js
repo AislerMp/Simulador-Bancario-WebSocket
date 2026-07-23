@@ -1,6 +1,6 @@
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
-import { createNewError } from "../utils/reusableFunctions.js";
+import { createNewError } from "../utils/helpers.js";
 import { generarCodigoMfa } from "./mfaService.js";
 
 import {

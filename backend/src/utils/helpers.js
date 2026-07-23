@@ -4,6 +4,22 @@ export function createNewError(message, code) {
   return error;
 }
 
+export function validarID(Id, entidad) {
+  if (!Id) {
+    throw createNewError(
+      `El : ${Id} de ${entidad} es obligatorio`,
+      "DATOS_INCOMPLETOS",
+    );
+  }
+
+  if (!Number.isInteger(Id) || Id < 0) {
+    throw createNewError(
+      `El ID: ${Id} de ${entidad} brindado es incorrecto`,
+      "FORMATO_INCORRECTO",
+    );
+  }
+}
+
 export function createSuccessResponse({ type, requestId, message, data = null }) {
   return {
     type,

@@ -1,7 +1,7 @@
 import { randomInt } from "node:crypto";
 import bcrypt from "bcrypt";
 import { createCodigoMfaCode, getValidMfaChallenge, markMfaCodeAsUsed, invalidatePendingCodesByUserId } from '../repositories/mfaRepositorie.js';
-import { createNewError } from '../utils/reusableFunctions.js';
+import { createNewError } from '../utils/helpers.js';
 import { getUserById } from '../repositories/authRepositorie.js';
 import { sendMfaCodeEmail } from './emailService.js';
 import jwt from 'jsonwebtoken';

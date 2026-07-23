@@ -1,5 +1,5 @@
 import sgMail from "@sendgrid/mail";
-import { createNewError } from "../utils/reusableFunctions.js";
+import { createNewError } from "../utils/helpers.js";
 import env from "dotenv";
 env.config();
 
