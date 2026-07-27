@@ -3,13 +3,7 @@ import { getConnection, sql } from "../config/database.js";
 export async function getUsers() {
     const pool = await getConnection();
     const result = await pool.request().query(`
-        SELECT
-        id_usuario,
-        rol,
-        nombre,
-        correo,
-        activo,
-        fecha_creacion
+        SELECT id_usuario, rol, nombre, correo, activo, fecha_creacion
         FROM Usuario
     `);
 
