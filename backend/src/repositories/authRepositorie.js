@@ -8,7 +8,7 @@ export async function getUsers() {
     `);
 
     console.log("Usuarios obtenidos:", result);
-    return result.recordset;
+    return result.recordset || null;
 }
 
 export async function getUserByCorreo(correo){

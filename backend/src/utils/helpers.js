@@ -22,7 +22,7 @@ export function validarID(Id, entidad) {
 
 export function createSuccessResponse({ type, requestId, message, data = null }) {
   return {
-    type,
+    type: `${type}_RESPONSE`,
     requestId: requestId ?? null,
     success: true,
     message,
@@ -39,7 +39,7 @@ export function createErrorResponse({ type, requestId, error }) {
   }
 
   return {
-    type,
+    type: `${type}_RESPONSE`,
     requestId: requestId ?? null,
     success: false,
     message: knownError

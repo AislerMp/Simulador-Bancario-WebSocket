@@ -40,7 +40,6 @@ export async function generarCodigoMfa(idUsuario) {
             expirationMinutes: MFA_EXPIRATION_MINUTES,
         });
     } catch (error) {
-        console.error("Error al enviar el correo electrónico con el código MFA:", error);
         await markMfaCodeAsUsed(challenge.id_codigo_mfa); // Marcar el código como utilizado si falla el envío del correo
         throw createNewError(
             "No se pudo enviar el código MFA por correo electrónico",

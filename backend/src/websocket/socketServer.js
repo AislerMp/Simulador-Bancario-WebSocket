@@ -4,7 +4,7 @@ import { handleMessage } from "./messageRouter.js";
 export function initSocketServer(server) {
   const wss = new WebSocketServer({ server });
 
-  wss.on("connection", (ws) => {
+  wss.on("connection", (ws, request) => {
     console.log("Cliente conectado al WebSocket");
 
     ws.send(JSON.stringify({
@@ -15,6 +15,7 @@ export function initSocketServer(server) {
 
     ws.on("message", async (data) => {
       try {
+        console.log("IP Adress: ", request.socket.remoteAddress)
         const message = JSON.parse(data.toString());
         await handleMessage(ws, message);
       } catch (error) {

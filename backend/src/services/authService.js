@@ -2,7 +2,7 @@ import bcrypt from "bcrypt";
 import dotenv from "dotenv";
 import { createNewError } from "../utils/helpers.js";
 import { generarCodigoMfa } from "./mfaService.js";
-
+import { registrarEvento, BITACORA_ACCIONES } from '../services/bitacoraService.js'
 import {
   getUserByCorreo,
   createUser,
@@ -41,6 +41,13 @@ export async function login(correo, password) {
   }
 
   const mfaChallenge = await generarCodigoMfa(user.id_usuario);
+
+  await registrarEvento({
+    idUsuario: user.id_usuario,
+    accion: BITACORA_ACCIONES.LOGIN,
+    descripcion: "Inicio de sesión exitoso.",
+  });
+
   return mfaChallenge;
 }
 
@@ -72,6 +79,12 @@ export async function register(user) {
   };
 
   const createdUser = await createUser(newUser);
+
+  await registrarEvento({
+    idUsuario: createdUser.id_usuario,
+    accion: BITACORA_ACCIONES.REGISTRO,
+    descripcion: "Usuario registrado correctamente.",
+  });
 
   return {
     user: createdUser,

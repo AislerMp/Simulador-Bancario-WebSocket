@@ -1,10 +1,4 @@
-import {
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const mockGetUserByCorreo = jest.fn();
 const mockCreateUser = jest.fn();
@@ -12,17 +6,23 @@ const mockGenerarCodigoMfa = jest.fn();
 
 const mockBcryptCompare = jest.fn();
 const mockBcryptHash = jest.fn();
+const mockRegistraEvento = jest.fn();
 
-jest.unstable_mockModule(
-  "../../src/repositories/authRepositorie.js",
-  () => ({
-    getUserByCorreo: mockGetUserByCorreo,
-    createUser: mockCreateUser,
-  }),
-);
+jest.unstable_mockModule("../../src/repositories/authRepositorie.js", () => ({
+  getUserByCorreo: mockGetUserByCorreo,
+  createUser: mockCreateUser,
+}));
 
 jest.unstable_mockModule("../../src/services/mfaService.js", () => ({
   generarCodigoMfa: mockGenerarCodigoMfa,
+}));
+
+jest.unstable_mockModule("../../src/services/bitacoraService.js", () => ({
+  registrarEvento: mockRegistraEvento,
+  BITACORA_ACCIONES: {
+    LOGIN: "LOGIN",
+    REGISTRO: "REGISTRO",
+  },
 }));
 
 jest.unstable_mockModule("bcrypt", () => ({
@@ -32,9 +32,7 @@ jest.unstable_mockModule("bcrypt", () => ({
   },
 }));
 
-const { login, register } = await import(
-  "../../src/services/authService.js"
-);
+const { login, register } = await import("../../src/services/authService.js");
 
 describe("authService - login", () => {
   beforeEach(() => {
@@ -51,9 +49,7 @@ describe("authService - login", () => {
   test("lanza error cuando el usuario no existe", async () => {
     mockGetUserByCorreo.mockResolvedValue(null);
 
-    await expect(
-      login("noexiste@test.com", "123456"),
-    ).rejects.toMatchObject({
+    await expect(login("noexiste@test.com", "123456")).rejects.toMatchObject({
       message: "Correo o contraseña incorrectos",
       code: "CREDENCIALES_INVALIDAS",
     });
@@ -72,11 +68,11 @@ describe("authService - login", () => {
 
     mockBcryptCompare.mockResolvedValue(false);
 
-    await expect(
-      login("cliente@test.com", "incorrecta"),
-    ).rejects.toMatchObject({
-      code: "CREDENCIALES_INVALIDAS",
-    });
+    await expect(login("cliente@test.com", "incorrecta")).rejects.toMatchObject(
+      {
+        code: "CREDENCIALES_INVALIDAS",
+      },
+    );
 
     expect(mockBcryptCompare).toHaveBeenCalledWith(
       "incorrecta",
@@ -96,9 +92,7 @@ describe("authService - login", () => {
 
     mockBcryptCompare.mockResolvedValue(true);
 
-    await expect(
-      login("inactivo@test.com", "123456"),
-    ).rejects.toMatchObject({
+    await expect(login("inactivo@test.com", "123456")).rejects.toMatchObject({
       message: "El usuario está desactivado",
       code: "USUARIO_DESACTIVADO",
     });
@@ -126,15 +120,15 @@ describe("authService - login", () => {
     mockGetUserByCorreo.mockResolvedValue(usuario);
     mockBcryptCompare.mockResolvedValue(true);
     mockGenerarCodigoMfa.mockResolvedValue(challenge);
+    mockRegistraEvento.mockResolvedValue({
+      idUsuario: 5,
+      accion: "LOGIN",
+      descripcion: "Login exitoso",
+    });
 
-    const result = await login(
-      "aisler@test.com",
-      "password-correcta",
-    );
+    const result = await login("aisler@test.com", "password-correcta");
 
-    expect(mockGetUserByCorreo).toHaveBeenCalledWith(
-      "aisler@test.com",
-    );
+    expect(mockGetUserByCorreo).toHaveBeenCalledWith("aisler@test.com");
 
     expect(mockBcryptCompare).toHaveBeenCalledWith(
       "password-correcta",
@@ -197,6 +191,7 @@ describe("authService - register", () => {
     mockGetUserByCorreo.mockResolvedValue(null);
     mockBcryptHash.mockResolvedValue("password-hasheada");
     mockCreateUser.mockResolvedValue(usuarioCreado);
+    mockRegistraEvento.mockResolvedValue(true);
 
     const result = await register({
       nombre: "Usuario Nuevo",

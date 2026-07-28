@@ -1,4 +1,5 @@
 import { createNewError, validarID } from "../utils/helpers.js";
+import { registrarEvento, BITACORA_ACCIONES } from '../services/bitacoraService.js'
 import {
   createCuentaBancaria,
   getCuentaById,
@@ -45,6 +46,12 @@ export async function createCuentaBancariaService(idUsuario) {
   }
 
   const nuevaCuenta = await createCuentaBancaria(idUsuario, numeroCuenta);
+  await registrarEvento({
+    idUsuario,
+    accion: BITACORA_ACCIONES.CREAR_CUENTA,
+    descripcion: `Cuenta ${numero_cuenta} creada correctamente.`
+  }); 
+  
   return nuevaCuenta;
 }
 
