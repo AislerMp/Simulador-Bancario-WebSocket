@@ -9,9 +9,9 @@ import {
   getCuentasUsuario,
 } from "../services/cuentaBancariaService.js";
 
-export async function createCuenta({ type, payload, requestId }) {
+export async function createCuenta({ type, payload, requestId, userToken }) {
   try {
-    const cuentaCreada = await createCuentaBancariaService(payload?.idUsuario);
+    const cuentaCreada = await createCuentaBancariaService(payload?.idUsuario, userToken);
 
     return createSuccessResponse({
       type,
@@ -46,9 +46,9 @@ export async function getCuentaBancaria({ type, payload, requestId }) {
   }
 }
 
-export async function getCuentasBancariasUsuario({ type, payload, requestId }) {
+export async function getCuentasBancariasUsuario({ type, payload, requestId, userToken }) {
   try {
-    const cuentasByUsuario = await getCuentasUsuario(payload?.idUsuario);
+    const cuentasByUsuario = await getCuentasUsuario(userToken?.idUsuario);
     return createSuccessResponse({
       type,
       requestId,
@@ -64,11 +64,13 @@ export async function getCuentasBancariasUsuario({ type, payload, requestId }) {
   }
 }
 
-export async function changeEstadoCuenta({ type, payload, requestId }) {
+export async function changeEstadoCuenta({ type, payload, requestId, userToken }) {
   try {
     const result = await cambiarEstadoCuenta(
       payload?.idCuenta,
+      payload?.idUsuario,
       payload?.estadoCuenta,
+      userToken
     );
     return createSuccessResponse({
       type,

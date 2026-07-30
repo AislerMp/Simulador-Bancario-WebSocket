@@ -5,6 +5,8 @@ import { createNewError } from '../utils/helpers.js';
 import { getUserById } from '../repositories/authRepositorie.js';
 import { sendMfaCodeEmail } from './emailService.js';
 import jwt from 'jsonwebtoken';
+import env from "dotenv";
+env.config();
 
 const MFA_EXPIRATION_MINUTES = 5;
 

@@ -1,6 +1,9 @@
 import * as authController from "../controllers/authController.js";
 import * as cuentaController from "../controllers/cuentaBancariaController.js";
 import * as bitacoraController from "../controllers/bitacoraController.js";
+import { verifyToken } from "../utils/jwt.js";
+import { createErrorResponse } from "../utils/helpers.js";
+
 const handlers = {
   /* ESTE SON LOS CONTROLLER DE LAS AUTENTICACIONES */
   LOGIN: authController.loginController,
@@ -17,6 +20,8 @@ const handlers = {
   GET_MOVIMIENTOS: bitacoraController.getMovimientosController,
   GET_MOVIMIENTOSXUSUARIO: bitacoraController.getMovimientosUsuarioController,
 };
+
+const publicRoutes = ["LOGIN", "REGISTER", "VERIFY_MFA"];
 
 export async function handleMessage(ws, message) {
   console.log("Mensaje recibido del frontend:", message);
@@ -36,6 +41,17 @@ export async function handleMessage(ws, message) {
       },
     };
     ws.send(JSON.stringify(response));
+  }
+  //Validar TOKEN
+  try {
+    if (!publicRoutes.includes(message.type))
+      message.userToken = verifyToken(message.token);
+  } catch (error) {
+    response = createErrorResponse({
+      type: message.type,
+      requestId: message.requestId,
+      error,
+    });
   }
 
   response = await handler(message);

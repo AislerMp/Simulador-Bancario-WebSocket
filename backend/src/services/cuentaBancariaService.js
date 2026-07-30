@@ -1,11 +1,14 @@
 import { createNewError, validarID } from "../utils/helpers.js";
-import { registrarEvento, BITACORA_ACCIONES } from '../services/bitacoraService.js'
+import {
+  registrarEvento,
+  BITACORA_ACCIONES,
+} from "../services/bitacoraService.js";
 import {
   createCuentaBancaria,
   getCuentaById,
   getCuentasByUser,
   getCuentaByNumero,
-  updateEstadoCuenta
+  updateEstadoCuenta,
 } from "../repositories/cuentaBancariaRepositorie.js";
 import { getUserById } from "../repositories/authRepositorie.js";
 
@@ -29,7 +32,7 @@ function generarCuentaIBANRandom() {
   return cuentaIBAN;
 }
 
-export async function createCuentaBancariaService(idUsuario) {
+export async function createCuentaBancariaService(idUsuario, usuarioActual) {
   validarID(idUsuario, "USUARIO");
 
   if (!(await getUserById(idUsuario))) {
@@ -39,19 +42,24 @@ export async function createCuentaBancariaService(idUsuario) {
   let numeroCuenta;
   let existeCuenta = true;
 
-  while (existeCuenta){
+  while (existeCuenta) {
     numeroCuenta = generarCuentaIBANRandom();
-    if (!(await getCuentaByNumero(numeroCuenta)))
-        existeCuenta = false;
+    if (!(await getCuentaByNumero(numeroCuenta))) existeCuenta = false;
   }
+
+  if (usuarioActual.rol !== "ADMINISTRADOR")
+    throw createNewError(
+      "NO tiene permiso de Administrador",
+      "USUARIO_SIN_PERMISOS",
+    );
 
   const nuevaCuenta = await createCuentaBancaria(idUsuario, numeroCuenta);
   await registrarEvento({
     idUsuario,
     accion: BITACORA_ACCIONES.CREAR_CUENTA,
-    descripcion: `Cuenta ${numero_cuenta} creada correctamente.`
-  }); 
-  
+    descripcion: `Cuenta ${numero_cuenta} creada correctamente.`,
+  });
+
   return nuevaCuenta;
 }
 
@@ -74,7 +82,12 @@ export async function getCuentasUsuario(idUsuario) {
   return await getCuentasByUser(idUsuario);
 }
 
-export async function cambiarEstadoCuenta(idCuenta, estadoCuenta) {
+export async function cambiarEstadoCuenta(
+  idCuenta,
+  idUsuario,
+  estadoCuenta,
+  usuarioActual,
+) {
   const estadosValidos = ["ACTIVA", "INACTIVA", "BLOQUEADA"];
 
   validarID(idCuenta, "CUENTA");
@@ -83,8 +96,14 @@ export async function cambiarEstadoCuenta(idCuenta, estadoCuenta) {
   if (!cuenta)
     throw createNewError("La cuenta no ha sido encontrada", "CUENTA_NOT_FOUND");
 
+  if (usuarioActual.rol !== "ADMINISTRADOR")
+    throw createNewError(
+      "NO tiene permiso de Administrador",
+      "USUARIO_SIN_PERMISOS",
+    );
+
   if (!estadosValidos.includes(estadoCuenta))
     throw createNewError("Estado brindado no es Valido", "ESTADO_INVALIDO");
 
-  return await updateEstadoCuenta(idCuenta, estadoCuenta);
+  return await updateEstadoCuenta(idCuenta, idUsuario, estadoCuenta);
 }

@@ -43,12 +43,13 @@ export async function getCuentaById(idCuenta){
     return result.recordset[0] || null;
 }
 
-export async function updateEstadoCuenta(idCuenta, estado) {
+export async function updateEstadoCuenta(idCuenta, idUsuario, estado) {
     const pool = await getConnection();
     const result = await pool.request()
         .input("id_cuenta", sql.Int, idCuenta)
+        .input("id_usuario", sql.Int, idUsuario)
         .input("estado", sql.VarChar, estado)
-        .query("UPDATE Cuenta_Bancaria SET estado = @estado WHERE id_cuenta = @id_cuenta;")
+        .query("UPDATE Cuenta_Bancaria SET estado = @estado WHERE id_cuenta = @id_cuenta AND id_usuario = @id_usuario;")
     return result.rowsAffected[0] > 0;
 }
 
