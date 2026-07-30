@@ -52,6 +52,7 @@ export async function handleMessage(ws, message) {
       requestId: message.requestId,
       error,
     });
+    ws.send(JSON.stringify(response));
   }
 
   response = await handler(message);
