@@ -1,6 +1,8 @@
 import * as authController from "../controllers/authController.js";
 import * as cuentaController from "../controllers/cuentaBancariaController.js";
 import * as bitacoraController from "../controllers/bitacoraController.js";
+import * as transaccionController from "../controllers/transferenciaController.js";
+
 import { verifyToken } from "../utils/jwt.js";
 import { createErrorResponse } from "../utils/helpers.js";
 
@@ -19,9 +21,11 @@ const handlers = {
   /* ESTE SON LOS CONTROLLER DE LOS MOVIMIENTOS/BITACORA */
   GET_MOVIMIENTOS: bitacoraController.getMovimientosController,
   GET_MOVIMIENTOSXUSUARIO: bitacoraController.getMovimientosUsuarioController,
-};
 
-const publicRoutes = ["LOGIN", "REGISTER", "VERIFY_MFA"];
+  /* ESTE SON LOS CONTROLLER DE LAS TRANSACCIONES */
+  DEPOSITO: transaccionController.depositoController,
+  TRANSFERENCIA: transaccionController.transferenciaController,
+};
 
 export async function handleMessage(ws, message) {
   console.log("Mensaje recibido del frontend:", message);
@@ -42,9 +46,10 @@ export async function handleMessage(ws, message) {
     };
     ws.send(JSON.stringify(response));
   }
+
   //Validar TOKEN
   try {
-    if (!publicRoutes.includes(message.type))
+    if (!["LOGIN", "REGISTER", "VERIFY_MFA"].includes(message.type))
       message.userToken = verifyToken(message.token);
   } catch (error) {
     response = createErrorResponse({
