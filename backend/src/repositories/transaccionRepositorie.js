@@ -4,17 +4,19 @@ export async function createTransaccion(transaccion, transaction = null) {
   const request = await createRequest(transaction);
 
   const result = await request
-    .input("id_cuenta_origen", sql.Int, transaccion.idCuentaOrigen)
-    .input("id_cuenta_destino", sql.Int, transaccion.idCuentaDestino)
+    .input("id_cuenta_origen", sql.Int, transaccion?.idCuentaOrigen)
+    .input("id_cuenta_destino", sql.Int, transaccion?.idCuentaDestino)
     .input("tipo", sql.VarChar(20), transaccion.tipo)
     .input("monto", sql.Decimal(18, 2), transaccion.monto)
+    .input("nombre_servicio", sql.VarChar(100), transaccion?.nombreServicio)
+    .input("referencia_servicio", sql.VarChar(100), transaccion?.referenciaServicio)
     .input("referencia", sql.VarChar(50), transaccion.referencia)
     .input("mti", sql.Char(4), transaccion.mti)
-    .input("codigo_respuesta", sql.Char(2), transaccion.codigoRespuesta)
+    .input("codigo_respuesta", sql.Char(2), transaccion?.codigoRespuesta)
     .input(
       "id_transaccion_original",
       sql.Int,
-      transaccion.idTransaccionOriginal,
+      transaccion?.idTransaccionOriginal,
     ).query(`
         INSERT INTO Transaccion
         (
@@ -22,6 +24,8 @@ export async function createTransaccion(transaccion, transaction = null) {
             id_cuenta_destino,
             tipo,
             monto,
+            nombre_servicio,
+            referencia_servicio,
             referencia,
             mti,
             codigo_respuesta,
@@ -36,6 +40,8 @@ export async function createTransaccion(transaccion, transaction = null) {
             @id_cuenta_destino,
             @tipo,
             @monto,
+            @nombre_servicio,
+            @referencia_servicio,
             @referencia,
             @mti,
             @codigo_respuesta,
@@ -74,7 +80,7 @@ export async function getTransaccionByReferencia(referencia, transaction = null)
   return result.recordset[0] || null;
 }
 
-export async function getTransaccionesCuenta(idCuenta, transaction = null) {
+export async function getTransaccionesByCuenta(idCuenta, transaction = null) {
   const request = await createRequest(transaction);
 
   const result = await request

@@ -17,6 +17,8 @@ import {
 } from "../services/bitacoraService.js";
 
 export async function depositar(transaccion, transaction) {
+  validarID(transaccion.idCuentaDestino, "Cuenta destino inválido");
+
   const cuentaDestino = await getCuentaById(
     transaccion.idCuentaDestino,
     transaction,
@@ -84,6 +86,9 @@ export async function depositar(transaccion, transaction) {
 }
 
 export async function transferir(transaccion, transaction) {
+  validarID(transaccion.idCuentaOrigen, "Cuenta origen inválido");
+  validarID(transaccion.idCuentaDestino, "Cuenta destino inválido");
+
   if (transaccion.idCuentaOrigen === transaccion.idCuentaDestino)
     throw createNewError("Cuentas bancarias son iguales", "SAME_ACCOUNTS");
 
@@ -142,6 +147,18 @@ export async function transferir(transaccion, transaction) {
     transaction,
   );
 
+  if (!resultCuentaOrigen)
+    throw createNewError(
+      "No se pudo actualizar el saldo de la cuenta origen",
+      "ERROR_ACTUALIZAR_SALDO_ORIGEN",
+    );
+
+  if (!resultCuentaDestino)
+    throw createNewError(
+      "No se pudo actualizar el saldo de la cuenta destino",
+      "ERROR_ACTUALIZAR_SALDO_DESTINO",
+    );
+
   await transaccionRepo.updateEstadoTransaccion(
     createdTransaccion.id_transaccion,
     ESTADOS_TRANSACCION.APROBADA,
@@ -175,4 +192,85 @@ export async function transferir(transaccion, transaction) {
   console.log(returnTransaccion);
 
   return returnTransaccion;
+}
+
+export async function pagoServicio(transaccion, transaction) {
+  validarID(transaccion.idCuentaOrigen, "Cuenta origen inválido");
+
+  const cuentaOrigen = await getCuentaById(
+    transaccion.idCuentaOrigen,
+    transaction,
+  );
+
+  if (!cuentaOrigen)
+    throw createNewError(
+      "La cuenta de origen no existe",
+      "CUENTA_ORIGEN_NOT_FOUND",
+    );
+
+  if (cuentaOrigen.estado !== "ACTIVA")
+    throw createNewError(
+      "La cuenta de origen no está activa",
+      "CUENTA_ORIGEN_NOT_ACTIVE",
+    );
+
+  if (!transaccion.nombreServicio || !transaccion.referenciaServicio)
+    throw createNewError(
+      "Datos del servicio no proporcionados",
+      "DATOS_SERVICIO_INCOMPLETOS"
+    );
+
+  if (!Number.isInteger(transaccion.monto) || transaccion.monto <= 0)
+    throw createNewError("Monto brindado no es valido", "MONTO_NO_VALIDO");
+
+  if (cuentaOrigen.saldo_actual < transaccion.monto)
+    throw createNewError(
+      "Saldo insuficiente en la cuenta de origen",
+      "SALDO_INSUFICIENTE",
+    );
+
+  transaccion.tipo = TIPOS_TRANSACCION.PAGO;
+  transaccion.referencia = generarReferencia("PSV");
+  transaccion.mti = MTI.PAGO;
+  transaccion.codigoRespuesta = null;
+  transaccion.idCuentaDestino = null;
+  transaccion.idTransaccionOriginal = null;
+
+  const createdTransaccion = await transaccionRepo.createTransaccion(
+    transaccion,
+    transaction,
+  );
+
+  await updateSaldoCuenta(
+    transaccion.idCuentaOrigen,
+    transaccion.monto,
+    "-",
+    transaction,
+  );
+
+  await transaccionRepo.updateEstadoTransaccion(
+    createdTransaccion.id_transaccion,
+    ESTADOS_TRANSACCION.APROBADA,
+    ISO_RESPONSE_CODES.APROBADA,
+    transaction,
+  );
+
+  await registrarEvento(
+    {
+      idUsuario: cuentaOrigen.id_usuario,
+      accion: BITACORA_ACCIONES.PAGO,
+      descripcion: `Pago de servicio '${transaccion?.nombreServicio}' por ₡${transaccion.monto}`,
+    },
+    transaction,
+  );
+
+  return await transaccionRepo.getTransaccionById(
+    createdTransaccion.id_transaccion,
+    transaction
+  );
+}
+
+export async function getTransaccionesByCuenta(idCuenta, transaction) {
+  validarID(idCuenta, "Cuenta inválida");
+  return await transaccionRepo.getTransaccionesByCuenta(idCuenta, transaction);
 }

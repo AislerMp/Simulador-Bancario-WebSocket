@@ -22,6 +22,8 @@ export const BITACORA_ACCIONES = {
 
   DEPOSITO: "DEPOSITO",
 
+  PAGO: "PAGO",
+  
   LOGOUT: "LOGOUT",
 };
 

@@ -5,14 +5,7 @@ export function createNewError(message, code) {
 }
 
 export function validarID(Id, entidad) {
-  if (!Id) {
-    throw createNewError(
-      `El : ${Id} de ${entidad} es obligatorio`,
-      "DATOS_INCOMPLETOS",
-    );
-  }
-
-  if (!Number.isInteger(Id) || Id < 0) {
+  if (!Number.isInteger(Id) || Id <= 0 || !Id) {
     throw createNewError(
       `El ID: ${Id} de ${entidad} brindado es incorrecto`,
       "FORMATO_INCORRECTO",

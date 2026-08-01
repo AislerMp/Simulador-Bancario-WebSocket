@@ -153,6 +153,8 @@ CREATE TABLE dbo.Transaccion (
     id_cuenta_destino INT NULL,
     tipo VARCHAR(20) NOT NULL,
     monto DECIMAL(18,2) NOT NULL,
+    nombre_servicio VARCHAR(100) NULL,
+    referencia_servicio VARCHAR(100) NULL,
     fecha_hora DATETIME2(0) NOT NULL
         CONSTRAINT DF_Transaccion_FechaHora DEFAULT (SYSDATETIME()),
     estado VARCHAR(20) NOT NULL

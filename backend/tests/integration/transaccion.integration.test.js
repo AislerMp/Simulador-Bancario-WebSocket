@@ -14,11 +14,13 @@ import {
   closeConnection,
 } from "../../src/config/database.js";
 
-import { depositar, transferir } from "../../src/services/transaccionService.js";
-
 import {
-  getCuentaById,
-} from "../../src/repositories/cuentaBancariaRepositorie.js";
+  depositar,
+  transferir,
+  pagoServicio,
+} from "../../src/services/transaccionService.js";
+
+import { getCuentaById } from "../../src/repositories/cuentaBancariaRepositorie.js";
 
 describe("Integración - Depósito", () => {
   // Después de todas las pruebas, cerramos la conexión a la base de datos
@@ -31,15 +33,17 @@ describe("Integración - Depósito", () => {
     const transaction = await beginTransaction();
 
     try {
-
       const idCuenta = 1;
 
       const cuentaAntes = await getCuentaById(idCuenta, transaction);
 
-      const resultado = await depositar({
-        idCuentaDestino: idCuenta,
-        monto: 1000,
-      }, transaction);
+      const resultado = await depositar(
+        {
+          idCuentaDestino: idCuenta,
+          monto: 1000,
+        },
+        transaction,
+      );
 
       const cuentaDespues = await getCuentaById(idCuenta, transaction);
 
@@ -49,17 +53,23 @@ describe("Integración - Depósito", () => {
 
       expect(resultado.estado).toBe("APROBADA");
 
-      expect(Number(cuentaDespues.saldo_actual))
-        .toBe(Number(cuentaAntes.saldo_actual) + 1000);
-
-    }
-    finally {
+      expect(Number(cuentaDespues.saldo_actual)).toBe(
+        Number(cuentaAntes.saldo_actual) + 1000,
+      );
+    } finally {
       // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
       await transaction.rollback();
-    } 
+    }
+  });
+});
+
+describe("Integración - Transferencia", () => {
+  // Después de todas las pruebas, cerramos la conexión a la base de datos
+  afterAll(async () => {
+    await closeConnection();
   });
 
-  test("Debe realizar correctamente una transferencia", async() => {
+  test("Debe realizar correctamente una transferencia", async () => {
     const transaction = await beginTransaction();
 
     try {
@@ -67,29 +77,93 @@ describe("Integración - Depósito", () => {
       const idCuentaDestino = 2;
       const monto = 5000;
 
-      const cuentaOrigenAntes = await getCuentaById(idCuentaOrigen, transaction);
-      const cuentaDestinoAntes = await getCuentaById(idCuentaDestino, transaction);
-
-      const resultado = await transferir({
+      const cuentaOrigenAntes = await getCuentaById(
         idCuentaOrigen,
+        transaction,
+      );
+      const cuentaDestinoAntes = await getCuentaById(
         idCuentaDestino,
-        monto
-      }, transaction);
+        transaction,
+      );
 
-      const cuentaOrigenDespues = await getCuentaById(idCuentaOrigen, transaction);
-      const cuentaDestinoDespues = await getCuentaById(idCuentaDestino, transaction);
+      const resultado = await transferir(
+        {
+          idCuentaOrigen,
+          idCuentaDestino,
+          monto,
+        },
+        transaction,
+      );
+
+      const cuentaOrigenDespues = await getCuentaById(
+        idCuentaOrigen,
+        transaction,
+      );
+      const cuentaDestinoDespues = await getCuentaById(
+        idCuentaDestino,
+        transaction,
+      );
 
       expect(resultado).not.toBeNull();
       expect(resultado.tipo).toBe("TRANSFERENCIA");
       expect(resultado.estado).toBe("APROBADA");
 
-      expect(Number(cuentaOrigenDespues.saldo_actual))
-        .toBe(Number(cuentaOrigenAntes.saldo_actual) - monto);
+      expect(Number(cuentaOrigenDespues.saldo_actual)).toBe(
+        Number(cuentaOrigenAntes.saldo_actual) - monto,
+      );
 
-      expect(Number(cuentaDestinoDespues.saldo_actual))
-        .toBe(Number(cuentaDestinoAntes.saldo_actual) + monto);
-      
-    } finally{
+      expect(Number(cuentaDestinoDespues.saldo_actual)).toBe(
+        Number(cuentaDestinoAntes.saldo_actual) + monto,
+      );
+    } finally {
+      // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
+      await transaction.rollback();
+    }
+  });
+});
+
+describe("Integración - Pago de servicio", () => {
+  // Después de todas las pruebas, cerramos la conexión a la base de datos
+  afterAll(async () => {
+    await closeConnection();
+  });
+
+  test("Debe realizar correctamente un pago de servicio", async () => {
+    const transaction = await beginTransaction();
+    try {
+      const idCuentaOrigen = 1;
+      const monto = 2000;
+      const nombreServicio = "Agua";
+      const referenciaServicio = "123456";
+
+      const cuentaOrigenAntes = await getCuentaById(
+        idCuentaOrigen,
+        transaction,
+      );
+
+      const resultado = await pagoServicio(
+        {
+          idCuentaOrigen,
+          monto,
+          nombreServicio,
+          referenciaServicio,
+        },
+        transaction,
+      );
+
+      const cuentaOrigenDespues = await getCuentaById(
+        idCuentaOrigen,
+        transaction,
+      );
+
+      expect(resultado).not.toBeNull();
+      expect(resultado.tipo).toBe("PAGO");
+      expect(resultado.estado).toBe("APROBADA");
+
+      expect(Number(cuentaOrigenDespues.saldo_actual)).toBe(
+        Number(cuentaOrigenAntes.saldo_actual) - monto,
+      );
+    } finally {
       // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
       await transaction.rollback();
     }

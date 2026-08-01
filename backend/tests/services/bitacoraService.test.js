@@ -46,7 +46,7 @@ describe("Bitacora tests", () => {
         descripcion: "hola",
       }),
     ).rejects.toMatchObject({
-      code: "DATOS_INCOMPLETOS",
+      code: "FORMATO_INCORRECTO",
     });
   });
 
