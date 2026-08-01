@@ -1,4 +1,4 @@
-import { getConnection, sql } from '../config/database.js';
+import { getConnection, sql, createRequest } from '../config/database.js';
 
 export async function createCuentaBancaria(idUsuario, numeroCuenta) {
     const pool = await getConnection();
@@ -35,9 +35,9 @@ export async function getCuentasByUser(idUsuario) {
     return result.recordset || null;
 }
 
-export async function getCuentaById(idCuenta){
-    const pool = await getConnection();
-    const result = await pool.request()
+export async function getCuentaById(idCuenta, transaction = null) {
+    const request = await createRequest(transaction);
+    const result = await request
         .input("id_cuenta", sql.Int, idCuenta)
         .query("SELECT TOP 1 * FROM Cuenta_Bancaria WHERE id_cuenta = @id_cuenta;");
     return result.recordset[0] || null;
@@ -53,11 +53,12 @@ export async function updateEstadoCuenta(idCuenta, idUsuario, estado) {
     return result.rowsAffected[0] > 0;
 }
 
-export async function updateSaldoCuenta(idCuenta, saldo){
-    const pool = await getConnection();
-    const result = await pool.request()
+export async function updateSaldoCuenta(idCuenta, monto, operacion, transaction = null){
+    const request = await createRequest(transaction);
+
+    const result = await request
         .input("id_cuenta", sql.Int, idCuenta)
-        .input("saldo_actual", sql.Decimal, saldo)
-        .query("UPDATE Cuenta_Bancaria SET saldo_actual = saldo_actual - @saldo_actual WHERE id_cuenta = @id_cuenta;")
+        .input("monto", sql.Decimal, monto)
+        .query(`UPDATE Cuenta_Bancaria SET saldo_actual = saldo_actual ${operacion} @monto WHERE id_cuenta = @id_cuenta;`)
     return result.rowsAffected[0] > 0;
 }

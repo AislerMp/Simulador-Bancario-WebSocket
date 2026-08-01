@@ -1,15 +1,14 @@
-import { getConnection, sql } from "../config/database.js";
+import { getConnection, sql, createRequest } from "../config/database.js";
 
 export async function createMovimiento({
   idUsuario,
   accion,
   descripcion,
   ip_origen,
-}) {
-  const pool = await getConnection();
+}, transaction = null) {
+  const request = await createRequest(transaction);
 
-  const result = await pool
-    .request()
+  const result = await request
     .input("id_usuario", sql.Int, idUsuario)
     .input("accion", sql.VarChar, accion)
     .input("descripcion", sql.VarChar, descripcion)

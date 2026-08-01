@@ -30,7 +30,7 @@ export async function registrarEvento({
   accion,
   descripcion,
   ip_origen = null,
-}) {
+}, transaction = null) {
   validarID(idUsuario, "USUARIO");
 
   if (!accion?.trim()) {
@@ -49,7 +49,7 @@ export async function registrarEvento({
     accion,
     descripcion,
     ip_origen,
-  });
+  }, transaction);
 }
 
 export async function getMovimientosUsuarioService(idUsuario) {
