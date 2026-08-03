@@ -10,6 +10,7 @@ import {
   transferir,
   pagoServicio,
   getTransaccionesByCuenta,
+  revertirTransaccion,
 } from "../services/transaccionService.js";
 
 export async function depositoController({
@@ -154,10 +155,42 @@ export async function movimientosTransaccionController({
       data: resultado,
     });
   } catch (error) {
+    if (transaction) await transaction.rollback();
 
-    if (transaction) 
+    return createErrorResponse({
+      type: type,
+      requestId,
+      error,
+    });
+  }
+}
+
+export async function revertirTransaccionController({
+  type,
+  payload,
+  requestId,
+  userToken,
+}) {
+  let transaction;
+  try {
+    transaction = await beginTransaction();
+
+    const resultado = await revertirTransaccion(
+      payload?.idTransaccion,
+      transaction,
+    );
+
+    await transaction.commit();
+    return createSuccessResponse({
+      type: type,
+      requestId,
+      message: "Transacción revertida correctamente",
+      data: resultado,
+    });
+  } catch (error) {
+    if (transaction) {
       await transaction.rollback();
-
+    }
     return createErrorResponse({
       type: type,
       requestId,

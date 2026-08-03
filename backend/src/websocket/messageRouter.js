@@ -27,6 +27,7 @@ const handlers = {
   TRANSFERENCIA: transaccionController.transferenciaController,
   PAGO_SERVICIO: transaccionController.pagoServicioController,
   GET_TRANSACCIONES_CUENTA: transaccionController.movimientosTransaccionController,
+  REVERTIR_TRANSACCION: transaccionController.revertirTransaccionController,
 };
 
 export async function handleMessage(ws, message) {

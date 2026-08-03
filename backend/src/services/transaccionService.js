@@ -133,6 +133,8 @@ export async function transferir(transaccion, transaction) {
     transaction,
   );
 
+  console.log("Transacción creada:", createdTransaccion);
+
   const resultCuentaOrigen = await updateSaldoCuenta(
     transaccion.idCuentaOrigen,
     transaccion.monto,
@@ -217,7 +219,7 @@ export async function pagoServicio(transaccion, transaction) {
   if (!transaccion.nombreServicio || !transaccion.referenciaServicio)
     throw createNewError(
       "Datos del servicio no proporcionados",
-      "DATOS_SERVICIO_INCOMPLETOS"
+      "DATOS_SERVICIO_INCOMPLETOS",
     );
 
   if (!Number.isInteger(transaccion.monto) || transaccion.monto <= 0)
@@ -266,11 +268,116 @@ export async function pagoServicio(transaccion, transaction) {
 
   return await transaccionRepo.getTransaccionById(
     createdTransaccion.id_transaccion,
-    transaction
+    transaction,
   );
 }
 
 export async function getTransaccionesByCuenta(idCuenta, transaction) {
   validarID(idCuenta, "Cuenta inválida");
   return await transaccionRepo.getTransaccionesByCuenta(idCuenta, transaction);
+}
+
+export async function revertirTransaccion(idTransaccion, transaction) {
+  validarID(idTransaccion, "Transacción inválida");
+
+  const original = await transaccionRepo.getTransaccionById(
+    idTransaccion,
+    transaction,
+  );
+
+  if (!original)
+    throw createNewError("La transacción no existe", "TRANSACCION_NOT_FOUND");
+
+  if (original.tipo !== TIPOS_TRANSACCION.TRANSFERENCIA)
+    throw createNewError(
+      "Solo se pueden revertir transferencias",
+      "TIPO_NO_PERMITIDO",
+    );
+
+  if (original.estado !== ESTADOS_TRANSACCION.APROBADA)
+    throw createNewError(
+      "La transacción no puede revertirse",
+      "TRANSACCION_INVALIDA",
+    );
+
+  const existeReversion = await transaccionRepo.getTransaccionOriginal(
+    original.id_transaccion,
+    transaction,
+  );
+
+  if (existeReversion && existeReversion.tipo === TIPOS_TRANSACCION.REVERSION)
+    throw createNewError("La transacción ya fue revertida", "YA_REVERTIDA");
+
+  const cuentaOrigen = await getCuentaById(
+    original.id_cuenta_origen,
+    transaction,
+  );
+
+  const cuentaDestino = await getCuentaById(
+    original.id_cuenta_destino,
+    transaction,
+  );
+
+  if (!cuentaOrigen || !cuentaDestino)
+    throw createNewError("No existen las cuentas", "CUENTAS_NOT_FOUND");
+
+  if (Number(cuentaDestino.saldo_actual) < Number(original.monto))
+    throw createNewError(
+      "La cuenta destino no tiene fondos suficientes para revertir",
+      "SALDO_DESTINO_INSUFICIENTE",
+    );
+
+  const nueva = {
+    idCuentaOrigen: original.id_cuenta_destino,
+    idCuentaDestino: original.id_cuenta_origen,
+    tipo: TIPOS_TRANSACCION.REVERSION,
+    monto: original.monto,
+    referencia: generarReferencia("REV"),
+    mti: MTI.REVERSION,
+    codigoRespuesta: null,
+    idTransaccionOriginal: original.id_transaccion,
+  };
+
+  const creada = await transaccionRepo.createTransaccion(nueva, transaction);
+
+  await updateSaldoCuenta(nueva.idCuentaOrigen, nueva.monto, "-", transaction);
+
+  await updateSaldoCuenta(nueva.idCuentaDestino, nueva.monto, "+", transaction);
+
+  await transaccionRepo.updateEstadoTransaccion(
+    creada.id_transaccion,
+    ESTADOS_TRANSACCION.APROBADA,
+    ISO_RESPONSE_CODES.APROBADA,
+    transaction,
+  );
+
+  await transaccionRepo.updateEstadoTransaccion(
+    original.id_transaccion,
+    ESTADOS_TRANSACCION.REVERTIDA,
+    ISO_RESPONSE_CODES.APROBADA,
+    transaction,
+  );
+
+  await registrarEvento(
+    {
+      idUsuario: cuentaOrigen.id_usuario,
+      accion: BITACORA_ACCIONES.REVERSION,
+      descripcion: `Se revirtió la transferencia ${original.referencia}`,
+    },
+    transaction,
+  );
+
+  await registrarEvento(
+    {
+      idUsuario: cuentaDestino.id_usuario,
+      accion: BITACORA_ACCIONES.REVERSION,
+      descripcion: `Se recibió la reversión de la transferencia ${original.referencia}`,
+    },
+    transaction,
+  );
+
+  return await transaccionRepo.getTransaccionById(
+    creada.id_transaccion,
+    transaction,
+  );
 }
