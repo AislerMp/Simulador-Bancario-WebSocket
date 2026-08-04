@@ -1,0 +1,36 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card receipt-card">
+    <p class="brand">Revise antes de continuar</p>
+    <h1>Confirmar transferencia</h1>
+
+    <dl class="receipt-list">
+      <div>
+        <dt>Cuenta origen</dt>
+        <dd><%= pendingTransfer.numeroCuentaOrigen %></dd>
+      </div>
+      <div>
+        <dt>Cuenta destino</dt>
+        <dd><%= pendingTransfer.numeroCuentaDestino %></dd>
+      </div>
+      <div>
+        <dt>Beneficiario</dt>
+        <dd><%= pendingTransfer.nombreBeneficiario %></dd>
+      </div>
+      <div>
+        <dt>Monto</dt>
+        <dd>₡<%= Number(pendingTransfer.monto).toLocaleString("es-CR") %></dd>
+      </div>
+    </dl>
+
+    <form class="form" action="/transferencias/ejecutar" method="POST">
+      <button type="submit">Confirmar transferencia</button>
+    </form>
+
+    <a class="cancel-link" href="/transferencias">Cancelar</a>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

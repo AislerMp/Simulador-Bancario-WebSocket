@@ -1,0 +1,46 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card">
+    <h1>Pago de servicio</h1>
+    <p class="subtitle">El frontend enviará el tipo <strong>PAGO_SERVICIO</strong>.</p>
+    <%- include("../partials/message", { message, messageType }) %>
+
+    <form class="form" action="/pagos" method="POST">
+      <label>
+        Cuenta origen
+        <select name="idCuentaOrigen" required>
+          <option value="">Seleccione una cuenta</option>
+          <% accounts.forEach((item) => { %>
+            <option
+              value="<%= item.id_cuenta %>"
+              <%= String(values.idCuentaOrigen || "") === String(item.id_cuenta) ? "selected" : "" %>
+            >
+              <%= item.numero_cuenta %> - ₡<%= Number(item.saldo_actual).toLocaleString("es-CR") %>
+            </option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>
+        Nombre del servicio
+        <input type="text" name="nombreServicio" maxlength="100" value="<%= values.nombreServicio || '' %>" required>
+      </label>
+
+      <label>
+        Referencia del servicio
+        <input type="text" name="referenciaServicio" maxlength="100" value="<%= values.referenciaServicio || '' %>" required>
+      </label>
+
+      <label>
+        Monto
+        <input type="number" name="monto" min="1" step="1" value="<%= values.monto || '' %>" required>
+      </label>
+
+      <button type="submit" <%= accounts.length === 0 ? "disabled" : "" %>>Pagar</button>
+    </form>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

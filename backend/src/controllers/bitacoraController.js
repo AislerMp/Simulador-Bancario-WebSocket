@@ -1,44 +1,54 @@
-import { getMovimientosService, getMovimientosUsuarioService } from "../services/bitacoraService.js"
+import {
+  getMovimientosService,
+  getMovimientosUsuarioService,
+} from "../services/bitacoraService.js";
 import {
   createSuccessResponse,
   createErrorResponse,
 } from "../utils/helpers.js";
 
-
-export async function getMovimientosController({ type, payload, requestId }){
-try {
-    const allMovimientos = await getMovimientosService();
-
+export async function getMovimientosController({
+  type,
+  requestId,
+  userToken,
+}) {
+  try {
+    const data = await getMovimientosService(userToken);
     return createSuccessResponse({
       type,
       requestId,
-      message: "Todos los movimientos retornados satisfactoriamente",
-      data: allMovimientos,
+      message: "Movimientos obtenidos correctamente",
+      data,
     });
   } catch (error) {
-    return createErrorResponse({
-      type,
-      requestId,
-      error,
-    });
+    return createErrorResponse({ type, requestId, error });
   }
 }
 
-export async function getMovimientosUsuarioController({ type, payload, requestId }){
-try {
-    const movimientosXusuario = await getMovimientosUsuarioService(payload?.idUsuario);
+export async function getMovimientosUsuarioController({
+  type,
+  payload,
+  requestId,
+  userToken,
+}) {
+  try {
+    const requestedUserId =
+      userToken?.rol === "ADMINISTRADOR"
+        ? Number(payload?.idUsuario)
+        : Number(userToken?.idUsuario);
+
+    const data = await getMovimientosUsuarioService(
+      requestedUserId,
+      userToken,
+    );
 
     return createSuccessResponse({
       type,
       requestId,
-      message: "Movimientos por usuario Obtenido",
-      data: movimientosXusuario,
+      message: "Movimientos del usuario obtenidos correctamente",
+      data,
     });
   } catch (error) {
-    return createErrorResponse({
-      type,
-      requestId,
-      error,
-    });
+    return createErrorResponse({ type, requestId, error });
   }
 }

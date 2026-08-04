@@ -1,0 +1,38 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Mis cuentas bancarias</h1>
+    <p>Información obtenida del backend mediante <strong>GET_CUENTAS_USUARIO</strong>.</p>
+    <%- include("../partials/message", { message, messageType }) %>
+  </section>
+
+  <section class="action-row">
+    <a class="link-button" href="/transferencias">Realizar transferencia</a>
+    <a class="link-button" href="/pagos">Pagar servicio</a>
+    <a class="link-button" href="/transacciones">Ver transacciones</a>
+  </section>
+
+  <section class="grid accounts-grid">
+    <% if (accounts.length === 0) { %>
+      <article class="info-card">
+        <h2>Sin cuentas</h2>
+        <p>No hay cuentas bancarias asociadas a este usuario.</p>
+      </article>
+    <% } %>
+
+    <% accounts.forEach((item) => { %>
+      <article class="info-card">
+        <h2><%= item.numero_cuenta %></h2>
+        <p><strong>ID:</strong> <%= item.id_cuenta %></p>
+        <p><strong>Tipo:</strong> <%= item.tipo_cuenta || "AHORROS" %></p>
+        <p><strong>Saldo:</strong> ₡<%= Number(item.saldo_actual).toLocaleString("es-CR") %></p>
+        <p><strong>Estado:</strong> <%= item.estado %></p>
+        <a href="/cuentas/<%= item.id_cuenta %>">Ver detalle</a>
+      </article>
+    <% }) %>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

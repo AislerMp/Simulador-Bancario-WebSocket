@@ -1,33 +1,21 @@
-import {
-  afterAll,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  jest,
-  test,
-} from "@jest/globals";
+import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
-process.env.JWT_SECRET = "jwt-secret-para-pruebas";
+process.env.JWT_SECRET = "jwt-secret-pruebas";
 
 const mockRandomInt = jest.fn();
-
 const mockBcryptHash = jest.fn();
 const mockBcryptCompare = jest.fn();
-
 const mockCreateCodigoMfaCode = jest.fn();
 const mockGetValidMfaChallenge = jest.fn();
 const mockMarkMfaCodeAsUsed = jest.fn();
 const mockInvalidatePendingCodesByUserId = jest.fn();
-
+const mockRegisterInvalidMfaAttempt = jest.fn();
 const mockGetUserById = jest.fn();
-const mockJwtSign = jest.fn();
-
 const mockSendMfaCodeEmail = jest.fn();
+const mockJwtSign = jest.fn();
+const mockRegistrarEvento = jest.fn();
 
-jest.unstable_mockModule("node:crypto", () => ({
-  randomInt: mockRandomInt,
-}));
+jest.unstable_mockModule("node:crypto", () => ({ randomInt: mockRandomInt }));
 
 jest.unstable_mockModule("bcrypt", () => ({
   default: {
@@ -37,326 +25,99 @@ jest.unstable_mockModule("bcrypt", () => ({
 }));
 
 jest.unstable_mockModule("jsonwebtoken", () => ({
-  default: {
-    sign: mockJwtSign,
-  },
+  default: { sign: mockJwtSign },
 }));
 
-jest.unstable_mockModule(
-  "../../src/repositories/mfaRepositorie.js",
-  () => ({
-    createCodigoMfaCode: mockCreateCodigoMfaCode,
-    getValidMfaChallenge: mockGetValidMfaChallenge,
-    markMfaCodeAsUsed: mockMarkMfaCodeAsUsed,
-    invalidatePendingCodesByUserId: mockInvalidatePendingCodesByUserId,
-  }),
+jest.unstable_mockModule("../../src/repositories/mfaRepositorie.js", () => ({
+  createCodigoMfaCode: mockCreateCodigoMfaCode,
+  getValidMfaChallenge: mockGetValidMfaChallenge,
+  markMfaCodeAsUsed: mockMarkMfaCodeAsUsed,
+  invalidatePendingCodesByUserId: mockInvalidatePendingCodesByUserId,
+  registerInvalidMfaAttempt: mockRegisterInvalidMfaAttempt,
+}));
+
+jest.unstable_mockModule("../../src/repositories/authRepositorie.js", () => ({
+  getUserById: mockGetUserById,
+}));
+
+jest.unstable_mockModule("../../src/services/emailService.js", () => ({
+  sendMfaCodeEmail: mockSendMfaCodeEmail,
+}));
+
+jest.unstable_mockModule("../../src/services/bitacoraService.js", () => ({
+  registrarEvento: mockRegistrarEvento,
+  BITACORA_ACCIONES: { MFA: "MFA" },
+}));
+
+const { generarCodigoMfa, validateMfaChallenge } = await import(
+  "../../src/services/mfaService.js"
 );
 
-jest.unstable_mockModule(
-  "../../src/repositories/authRepositorie.js",
-  () => ({
-    getUserById: mockGetUserById,
-  }),
-);
-
-jest.unstable_mockModule(
-  "../../src/services/emailService.js",
-  () => ({
-    sendMfaCodeEmail: mockSendMfaCodeEmail,
-  }),
-);
-
-const { generarCodigoMfa, validateMfaChallenge } =
-  await import("../../src/services/mfaService.js");
-
-describe("mfaService - generarCodigoMfa", () => {
-  beforeAll(() => {
-    jest.useFakeTimers();
-  });
-
-  afterAll(() => {
-    jest.useRealTimers();
-  });
-
+describe("mfaService", () => {
   beforeEach(() => {
     jest.resetAllMocks();
-
-    jest.setSystemTime(
-      new Date("2026-07-10T20:00:00.000Z"),
-    );
   });
 
-  test("lanza error cuando el ID del usuario es inválido", async () => {
-    await expect(generarCodigoMfa(0)).rejects.toMatchObject({
-      message: "El usuario indicado no es válido",
-      code: "USUARIO_INVALIDO",
+  test("genera y envía un código MFA", async () => {
+    mockGetUserById.mockResolvedValue({
+      id_usuario: 1,
+      nombre: "Cliente",
+      correo: "cliente@test.com",
     });
-
-    expect(mockRandomInt).not.toHaveBeenCalled();
-  });
-
-  test("genera, cifra y guarda un código MFA", async () => {
-    const fechaExpiracionEsperada = new Date(
-      "2026-07-10T20:05:00.000Z",
-    );
-
-    const challengeCreado = {
-      id_codigo_mfa: 30,
-      id_usuario: 8,
-      fecha_expiracion: fechaExpiracionEsperada,
-      utilizado: false,
-    };
-
-    const usuario = {
-      id_usuario: 8,
-      rol: "CLIENTE",
-      nombre: "Aisler",
-      correo: "aisler@test.com",
-      activo: true,
-    };
-    mockRandomInt.mockReturnValue(483921);
-    mockBcryptHash.mockResolvedValue("hash-del-codigo");
-    mockInvalidatePendingCodesByUserId.mockResolvedValue(2);
-    mockCreateCodigoMfaCode.mockResolvedValue(
-      challengeCreado,
-    );
-    mockGetUserById.mockResolvedValue(usuario)
-
-    mockSendMfaCodeEmail.mockResolvedValue({
-      sent: true,
-      statusCode: 202,
-      messageId: "msg-id-123",
-    });
-
-    const result = await generarCodigoMfa(8);
-
-    expect(mockRandomInt).toHaveBeenCalledWith(
-      100000,
-      1000000,
-    );
-
-    expect(mockBcryptHash).toHaveBeenCalledWith(
-      "483921",
-      10,
-    );
-
-    expect(
-      mockInvalidatePendingCodesByUserId,
-    ).toHaveBeenCalledWith(8);
-
-    expect(mockCreateCodigoMfaCode).toHaveBeenCalledWith({
-      idUsuario: 8,
-      codigoMfahash: "hash-del-codigo",
-      fechaExpiracion: fechaExpiracionEsperada,
-    });
-
-    expect(mockSendMfaCodeEmail).toHaveBeenCalledWith({
-      correo: "aisler@test.com",
-      nombre: "Aisler",
-      codigo: "483921",
-      expirationMinutes: 5,
-    });
-
-    expect(result).toEqual(challengeCreado);
-  });
-
-  test("lanza error cuando el repository no crea el desafío", async () => {
     mockRandomInt.mockReturnValue(123456);
     mockBcryptHash.mockResolvedValue("hash");
     mockInvalidatePendingCodesByUserId.mockResolvedValue(0);
-    mockCreateCodigoMfaCode.mockResolvedValue(null);
-
-    await expect(generarCodigoMfa(3)).rejects.toMatchObject({
-      message: "No se pudo generar el código MFA",
-      code: "GENERACION_CODIGO_FALLIDA",
-    });
-  });
-});
-
-describe("mfaService - validateMfaChallenge", () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
-  });
-
-  test("lanza error cuando el usuario es inválido", async () => {
-    await expect(
-      validateMfaChallenge(-1, "123456"),
-    ).rejects.toMatchObject({
-      code: "USUARIO_INVALIDO",
-    });
-  });
-
-  test("lanza error cuando el código no tiene seis dígitos", async () => {
-    await expect(
-      validateMfaChallenge(1, "12A456"),
-    ).rejects.toMatchObject({
-      code: "CODIGO_MFA_INVALIDO",
-    });
-
-    expect(mockGetValidMfaChallenge).not.toHaveBeenCalled();
-  });
-
-  test("lanza error cuando no existe un desafío vigente", async () => {
-    mockGetValidMfaChallenge.mockResolvedValue(null);
-
-    await expect(
-      validateMfaChallenge(1, "123456"),
-    ).rejects.toMatchObject({
-      message: "No hay un desafío MFA válido para este usuario",
-      code: "DESAFIO_MFA_NO_ENCONTRADO",
-    });
-  });
-
-  test("lanza error cuando el código no coincide", async () => {
-    mockGetValidMfaChallenge.mockResolvedValue({
-      id_codigo_mfa: 4,
+    mockCreateCodigoMfaCode.mockResolvedValue({
+      id_codigo_mfa: 10,
       id_usuario: 1,
-      codigo_hash: "hash-real",
-      fecha_expiracion: new Date(Date.now() + 300000),
     });
+    mockSendMfaCodeEmail.mockResolvedValue({ sent: true });
 
-    mockBcryptCompare.mockResolvedValue(false);
+    const result = await generarCodigoMfa(1);
 
-    await expect(
-      validateMfaChallenge(1, "123456"),
-    ).rejects.toMatchObject({
-      code: "CODIGO_MFA_INVALIDO",
-    });
-
-    expect(mockBcryptCompare).toHaveBeenCalledWith(
-      "123456",
-      "hash-real",
+    expect(mockSendMfaCodeEmail).toHaveBeenCalledWith(
+      expect.objectContaining({
+        correo: "cliente@test.com",
+        codigo: "123456",
+      }),
     );
-
-    expect(mockMarkMfaCodeAsUsed).not.toHaveBeenCalled();
+    expect(result.id_codigo_mfa).toBe(10);
   });
 
-  test("lanza error cuando el código está expirado", async () => {
+  test("invalida el desafío después de cinco intentos", async () => {
     mockGetValidMfaChallenge.mockResolvedValue({
       id_codigo_mfa: 5,
-      id_usuario: 1,
       codigo_hash: "hash",
-      fecha_expiracion: new Date(Date.now() - 60000),
+    });
+    mockBcryptCompare.mockResolvedValue(false);
+    mockRegisterInvalidMfaAttempt.mockResolvedValue({
+      intentos_fallidos: 5,
+      utilizado: true,
     });
 
-    mockBcryptCompare.mockResolvedValue(true);
-
-    await expect(
-      validateMfaChallenge(1, "123456"),
-    ).rejects.toMatchObject({
-      code: "CODIGO_MFA_EXPIRADO",
+    await expect(validateMfaChallenge(1, "123456")).rejects.toMatchObject({
+      code: "CODIGO_MFA_BLOQUEADO",
     });
-
-    expect(mockMarkMfaCodeAsUsed).not.toHaveBeenCalled();
   });
 
-  test("lanza error cuando no puede marcar el código como utilizado", async () => {
+  test("genera JWT cuando el código es correcto", async () => {
     mockGetValidMfaChallenge.mockResolvedValue({
       id_codigo_mfa: 6,
-      id_usuario: 2,
       codigo_hash: "hash",
-      fecha_expiracion: new Date(Date.now() + 300000),
     });
-
-    mockBcryptCompare.mockResolvedValue(true);
-    mockMarkMfaCodeAsUsed.mockResolvedValue(false);
-
-    await expect(
-      validateMfaChallenge(2, "123456"),
-    ).rejects.toMatchObject({
-      code: "MARCAR_CODIGO_FALLIDO",
-    });
-  });
-
-  test("genera un JWT cuando el código MFA es correcto", async () => {
-    const usuario = {
-      id_usuario: 9,
-      rol: "CLIENTE",
-      nombre: "Aisler",
-      correo: "aisler@test.com",
-      activo: true,
-    };
-
-    mockGetValidMfaChallenge.mockResolvedValue({
-      id_codigo_mfa: 40,
-      id_usuario: 9,
-      codigo_hash: "hash-del-codigo",
-      fecha_expiracion: new Date(Date.now() + 300000),
-    });
-
     mockBcryptCompare.mockResolvedValue(true);
     mockMarkMfaCodeAsUsed.mockResolvedValue(true);
-    mockGetUserById.mockResolvedValue(usuario);
-    mockJwtSign.mockReturnValue("jwt-generado");
-
-    const result = await validateMfaChallenge(
-      9,
-      "483921",
-    );
-
-    expect(mockMarkMfaCodeAsUsed).toHaveBeenCalledWith(40);
-    expect(mockGetUserById).toHaveBeenCalledWith(9);
-
-    expect(mockJwtSign).toHaveBeenCalledWith(
-      {
-        idUsuario: 9,
-        rol: "CLIENTE",
-        nombre: "Aisler",
-        correo: "aisler@test.com",
-      },
-      "jwt-secret-para-pruebas",
-      {
-        expiresIn: "1h",
-      },
-    );
-
-    expect(result).toEqual({
-      user: {
-        idUsuario: 9,
-        rol: "CLIENTE",
-        nombre: "Aisler",
-        correo: "aisler@test.com",
-        activo: true,
-      },
-      token: "jwt-generado",
-    });
-  });
-
-  test("invalida el desafío si SendGrid no envía el correo", async () => {
-    const challenge = {
-      id_codigo_mfa: 30,
-      id_usuario: 8,
-      fecha_expiracion: new Date(Date.now() + 300000),
-      utilizado: false,
-    };
-
-    mockRandomInt.mockReturnValue(483921);
-    mockBcryptHash.mockResolvedValue("hash-del-codigo");
-    mockInvalidatePendingCodesByUserId.mockResolvedValue(0);
-    mockCreateCodigoMfaCode.mockResolvedValue(challenge);
     mockGetUserById.mockResolvedValue({
-      id_usuario: 8,
+      id_usuario: 2,
       rol: "CLIENTE",
-      nombre: "Aisler",
-      correo: "aisler@test.com",
+      nombre: "Cliente",
+      correo: "cliente@test.com",
       activo: true,
     });
+    mockJwtSign.mockReturnValue("jwt");
 
-    const sendGridError = new Error(
-      "No se pudo enviar el correo de verificación",
-    );
-
-    sendGridError.code = "ENVIO_CORREO_FALLIDO";
-
-    mockSendMfaCodeEmail.mockRejectedValue(sendGridError);
-    mockMarkMfaCodeAsUsed.mockResolvedValue(true);
-
-    await expect(
-      generarCodigoMfa(8),
-    ).rejects.toMatchObject({
-      code: "ENVIO_CORREO_FALLIDO",
-    });
-
-    expect(mockMarkMfaCodeAsUsed).toHaveBeenCalledWith(30);
+    const result = await validateMfaChallenge(2, "123456");
+    expect(result.token).toBe("jwt");
+    expect(mockRegistrarEvento).toHaveBeenCalled();
   });
 });

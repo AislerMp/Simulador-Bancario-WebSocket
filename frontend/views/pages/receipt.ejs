@@ -1,0 +1,45 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card receipt-card" id="comprobante">
+    <p class="brand">Operación procesada</p>
+    <h1>Comprobante de operación</h1>
+
+    <dl class="receipt-list">
+      <div><dt>Referencia</dt><dd><%= transaction.referencia %></dd></div>
+      <div><dt>Tipo</dt><dd><%= transaction.tipo %></dd></div>
+      <div>
+        <dt>Fecha y hora</dt>
+        <dd><%= new Date(transaction.fecha_hora).toLocaleString("es-CR") %></dd>
+      </div>
+      <% if (transaction.numero_cuenta_origen) { %>
+        <div><dt>Cuenta origen</dt><dd><%= transaction.numero_cuenta_origen %></dd></div>
+      <% } %>
+      <% if (transaction.numero_cuenta_destino) { %>
+        <div><dt>Cuenta destino</dt><dd><%= transaction.numero_cuenta_destino %></dd></div>
+      <% } %>
+      <% if (transaction.nombre_servicio) { %>
+        <div><dt>Servicio</dt><dd><%= transaction.nombre_servicio %></dd></div>
+      <% } %>
+      <% if (transaction.referencia_servicio) { %>
+        <div><dt>Referencia del servicio</dt><dd><%= transaction.referencia_servicio %></dd></div>
+      <% } %>
+      <% if (transaction.id_transaccion_original) { %>
+        <div><dt>Transacción original</dt><dd>#<%= transaction.id_transaccion_original %></dd></div>
+      <% } %>
+      <div><dt>Monto</dt><dd>₡<%= Number(transaction.monto).toLocaleString("es-CR") %></dd></div>
+      <div><dt>Estado</dt><dd><%= transaction.estado %></dd></div>
+      <div><dt>MTI</dt><dd><%= transaction.mti %></dd></div>
+      <div><dt>Código de respuesta</dt><dd><%= transaction.codigo_respuesta || '-' %></dd></div>
+    </dl>
+
+    <div class="action-row no-print">
+      <button type="button" onclick="window.print()">Imprimir comprobante</button>
+      <a class="link-button" href="/dashboard">Volver al panel</a>
+      <a class="link-button secondary-link" href="/transacciones">Ver historial</a>
+    </div>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

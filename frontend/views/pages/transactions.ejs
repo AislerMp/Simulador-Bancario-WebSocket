@@ -1,0 +1,106 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Historial de transacciones</h1>
+    <%- include("../partials/message", { message, messageType }) %>
+
+    <form class="inline-form" action="/transacciones" method="GET">
+      <label>
+        Cuenta
+        <select name="idCuenta" required>
+          <option value="">Seleccione una cuenta</option>
+          <% accounts.forEach((item) => { %>
+            <option
+              value="<%= item.id_cuenta %>"
+              <%= Number(selectedAccountId) === Number(item.id_cuenta) ? "selected" : "" %>
+            >
+              <%= item.numero_cuenta %>
+              <% if (item.nombre_usuario) { %>
+                — <%= item.nombre_usuario %>
+              <% } %>
+            </option>
+          <% }) %>
+        </select>
+      </label>
+      <button type="submit">Consultar</button>
+    </form>
+  </section>
+
+  <section class="table-card">
+    <div class="table-wrapper">
+      <table>
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>Tipo</th>
+            <th>Origen</th>
+            <th>Destino</th>
+            <th>Monto</th>
+            <th>Referencia</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+            <th>MTI</th>
+            <th>Código</th>
+            <% if (user?.rol === "ADMINISTRADOR") { %>
+              <th>Acción</th>
+            <% } %>
+          </tr>
+        </thead>
+        <tbody>
+          <% if (transactions.length === 0) { %>
+            <tr>
+              <td colspan="<%= user?.rol === 'ADMINISTRADOR' ? 11 : 10 %>">
+                No hay transacciones para mostrar.
+              </td>
+            </tr>
+          <% } %>
+
+          <% transactions.forEach((item) => { %>
+            <tr>
+              <td><%= item.id_transaccion %></td>
+              <td><%= item.tipo %></td>
+              <td><%= item.numero_cuenta_origen || "-" %></td>
+              <td><%= item.numero_cuenta_destino || "-" %></td>
+              <td>₡<%= Number(item.monto).toLocaleString("es-CR") %></td>
+              <td><%= item.referencia %></td>
+              <td><%= new Date(item.fecha_hora).toLocaleString("es-CR") %></td>
+              <td><%= item.estado %></td>
+              <td><%= item.mti %></td>
+              <td><%= item.codigo_respuesta || "-" %></td>
+
+              <% if (user?.rol === "ADMINISTRADOR") { %>
+                <td>
+                  <% if (item.estado === "APROBADA" && item.tipo !== "REVERSION") { %>
+                    <form
+                      action="/transacciones/revertir"
+                      method="POST"
+                      onsubmit="return confirm('¿Desea revertir esta transacción? Esta acción modificará los saldos.');"
+                    >
+                      <input
+                        type="hidden"
+                        name="idTransaccionOriginal"
+                        value="<%= item.id_transaccion %>"
+                      >
+                      <input
+                        type="hidden"
+                        name="idCuenta"
+                        value="<%= selectedAccountId %>"
+                      >
+                      <button class="danger-button" type="submit">Revertir</button>
+                    </form>
+                  <% } else { %>
+                    -
+                  <% } %>
+                </td>
+              <% } %>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

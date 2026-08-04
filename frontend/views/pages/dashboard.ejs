@@ -5,6 +5,7 @@
   <section class="welcome-card">
     <h1>Bienvenido, <%= user.nombre %></h1>
     <p>La autenticación con contraseña y MFA fue completada.</p>
+    <%- include("../partials/message", { message, messageType }) %>
   </section>
 
   <section class="grid">
@@ -15,12 +16,55 @@
     </article>
 
     <article class="info-card">
-      <h2>Siguiente etapa</h2>
-      <p>
-        Este espacio queda preparado para cuentas, saldos,
-        transferencias e historial.
-      </p>
+      <h2>Cuentas y saldos</h2>
+      <p>Consulta las cuentas asociadas al usuario autenticado.</p>
+      <a class="link-button" href="/cuentas">Ver mis cuentas</a>
     </article>
+
+    <article class="info-card">
+      <h2>Operaciones</h2>
+      <div class="stack-links">
+        <a href="/transferencias">Realizar transferencia</a>
+        <a href="/pagos">Pagar servicio</a>
+      </div>
+    </article>
+
+    <article class="info-card">
+      <h2>Consultas</h2>
+      <div class="stack-links">
+        <a href="/transacciones">Historial de transacciones</a>
+        <a href="/bitacora">Mi bitácora</a>
+      </div>
+    </article>
+
+    <% if (user.rol === "CLIENTE") { %>
+      <article class="info-card">
+      <h2>Solicitud de cuenta</h2>
+
+        <p>
+        Solicita una cuenta bancaria y consulta
+        el estado de aprobación.
+        </p>
+
+        <a
+          class="link-button"
+          href="/solicitudes-cuenta"
+        >
+          Solicitar una cuenta
+        </a>
+      </article>
+    <% } %>
+
+    <% if (user.rol === "ADMINISTRADOR") { %>
+      <article class="info-card">
+        <h2>Administración</h2>
+        <div class="stack-links">
+          <a href="/admin/cuentas">Crear y actualizar cuentas</a>
+          <a href="/admin/bitacora">Ver bitácora general</a>
+          <a href="/admin/solicitudes-cuenta">Revisar solicitudes de cuentas</a>
+        </div>
+      </article>
+    <% } %>
   </section>
 </main>
 

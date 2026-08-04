@@ -1,0 +1,114 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Solicitar cuenta bancaria</h1>
+
+    <p>
+      La solicitud será revisada por un
+      administrador antes de crear la cuenta.
+    </p>
+
+    <%- include("../partials/message", {
+      message,
+      messageType
+    }) %>
+  </section>
+
+  <section class="grid">
+    <article class="info-card">
+      <h2>Nueva solicitud</h2>
+
+      <form
+        class="form"
+        action="/solicitudes-cuenta"
+        method="POST"
+      >
+        <label>
+          Tipo de cuenta
+
+          <select
+            name="tipoCuenta"
+            required
+          >
+            <option value="">
+              Seleccione un tipo
+            </option>
+
+            <option value="AHORROS">
+              Cuenta de ahorros
+            </option>
+
+            <option value="CORRIENTE">
+              Cuenta corriente
+            </option>
+          </select>
+        </label>
+
+        <button type="submit">
+          Enviar solicitud
+        </button>
+      </form>
+    </article>
+
+    <article class="info-card">
+      <h2>Mis solicitudes</h2>
+
+      <% if (solicitudes.length === 0) { %>
+        <p>
+          Todavía no has enviado solicitudes.
+        </p>
+      <% } else { %>
+        <div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Tipo</th>
+                <th>Estado</th>
+                <th>Fecha</th>
+                <th>Observación</th>
+                <th>Cuenta creada</th>
+              </tr>
+            </thead>
+
+            <tbody>
+              <% solicitudes.forEach((item) => { %>
+                <tr>
+                  <td>
+                    <%= item.id_solicitud %>
+                  </td>
+
+                  <td>
+                    <%= item.tipo_cuenta %>
+                  </td>
+
+                  <td>
+                    <%= item.estado %>
+                  </td>
+
+                  <td>
+                    <%= new Date(
+                      item.fecha_solicitud
+                    ).toLocaleString("es-CR") %>
+                  </td>
+
+                  <td>
+                    <%= item.observacion || "-" %>
+                  </td>
+
+                  <td>
+                    <%= item.numero_cuenta || "-" %>
+                  </td>
+                </tr>
+              <% }) %>
+            </tbody>
+          </table>
+        </div>
+      <% } %>
+    </article>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

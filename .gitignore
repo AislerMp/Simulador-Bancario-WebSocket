@@ -35,3 +35,12 @@ Thumbs.db
 # Archivos temporales
 *.tmp
 *.temp
+
+# Respaldos y exportaciones de base de datos
+*.bak
+*.bacpac
+*.mdf
+*.ldf
+
+# Paquetes locales
+*.zip

@@ -3,13 +3,6 @@ import session from "express-session";
 const COOKIE_NAME = "simulador.sid";
 const ONE_HOUR = 60 * 60 * 1000;
 
-/**
- * Configura las sesiones del servidor frontend.
- *
- * El navegador conserva únicamente una cookie con el ID de sesión.
- * Los datos del usuario, el desafío MFA y el JWT quedan guardados
- * en el servidor frontend dentro de req.session.
- */
 export function createSessionMiddleware() {
   const isProduction = process.env.NODE_ENV === "production";
   const secret =
@@ -28,9 +21,10 @@ export function createSessionMiddleware() {
     saveUninitialized: false,
     cookie: {
       httpOnly: true,
-      sameSite: "lax",
+      sameSite: isProduction ? "strict" : "lax",
       secure: isProduction,
       maxAge: ONE_HOUR,
+      path: "/",
     },
   });
 }

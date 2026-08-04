@@ -1,0 +1,73 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="page-center">
+  <section class="auth-card">
+    <h1>Realizar transferencia</h1>
+    <p class="subtitle">
+      Primero se validará el IBAN destino y luego se mostrará una confirmación.
+    </p>
+
+    <%- include("../partials/message", { message, messageType }) %>
+
+    <form class="form" action="/transferencias/confirmar" method="POST">
+      <label>
+        Cuenta origen
+        <select name="idCuentaOrigen" required>
+          <option value="">Seleccione una cuenta</option>
+          <% accounts.forEach((item) => { %>
+            <option
+              value="<%= item.id_cuenta %>"
+              <%= String(values.idCuentaOrigen || "") === String(item.id_cuenta) ? "selected" : "" %>
+            >
+              <%= item.numero_cuenta %> - ₡<%= Number(item.saldo_actual).toLocaleString("es-CR") %>
+            </option>
+          <% }) %>
+        </select>
+      </label>
+
+      <label>
+        Cuenta IBAN destino
+        <input
+          type="text"
+          name="numeroCuentaDestino"
+          id="numeroCuentaDestino"
+          value="<%= values.numeroCuentaDestino || '' %>"
+          placeholder="Ejemplo: CR50045117093636620029"
+          minlength="22"
+          maxlength="22"
+          pattern="CR[0-9]{20}"
+          autocomplete="off"
+          required
+        >
+      </label>
+
+      <small>Ingrese el IBAN completo, sin espacios ni guiones.</small>
+
+      <label>
+        Monto
+        <input
+          type="number"
+          name="monto"
+          min="1"
+          step="1"
+          value="<%= values.monto || '' %>"
+          required
+        >
+      </label>
+
+      <button type="submit" <%= accounts.length === 0 ? "disabled" : "" %>>
+        Continuar
+      </button>
+    </form>
+  </section>
+</main>
+
+<script>
+  const ibanInput = document.getElementById("numeroCuentaDestino");
+  ibanInput?.addEventListener("input", () => {
+    ibanInput.value = ibanInput.value.replace(/\s+/g, "").toUpperCase();
+  });
+</script>
+
+<%- include("../partials/pageEnd") %>

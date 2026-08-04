@@ -1,0 +1,110 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Solicitudes pendientes</h1>
+
+    <p>
+      Apruebe o rechace las solicitudes
+      de apertura de cuentas.
+    </p>
+
+    <%- include("../partials/message", {
+      message,
+      messageType
+    }) %>
+  </section>
+
+  <section class="info-card">
+    <% if (solicitudes.length === 0) { %>
+      <p>
+        No hay solicitudes pendientes.
+      </p>
+    <% } else { %>
+      <div class="table-wrapper">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Cliente</th>
+              <th>Correo</th>
+              <th>Tipo</th>
+              <th>Fecha</th>
+              <th>Decisión</th>
+            </tr>
+          </thead>
+
+          <tbody>
+            <% solicitudes.forEach((item) => { %>
+              <tr>
+                <td>
+                  <%= item.id_solicitud %>
+                </td>
+
+                <td>
+                  <%= item.nombre_usuario %>
+                </td>
+
+                <td>
+                  <%= item.correo_usuario %>
+                </td>
+
+                <td>
+                  <%= item.tipo_cuenta %>
+                </td>
+
+                <td>
+                  <%= new Date(
+                    item.fecha_solicitud
+                  ).toLocaleString("es-CR") %>
+                </td>
+
+                <td>
+                  <form
+                    action="/admin/solicitudes-cuenta/aprobar"
+                    method="POST"
+                  >
+                    <input
+                      type="hidden"
+                      name="idSolicitud"
+                      value="<%= item.id_solicitud %>"
+                    >
+
+                    <button type="submit">
+                      Aprobar
+                    </button>
+                  </form>
+
+                  <form
+                    action="/admin/solicitudes-cuenta/rechazar"
+                    method="POST"
+                  >
+                    <input
+                      type="hidden"
+                      name="idSolicitud"
+                      value="<%= item.id_solicitud %>"
+                    >
+
+                    <input
+                      type="text"
+                      name="observacion"
+                      maxlength="255"
+                      placeholder="Motivo del rechazo"
+                    >
+
+                    <button type="submit">
+                      Rechazar
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            <% }) %>
+          </tbody>
+        </table>
+      </div>
+    <% } %>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

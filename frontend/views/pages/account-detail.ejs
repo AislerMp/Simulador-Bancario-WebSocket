@@ -1,0 +1,19 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Detalle de la cuenta</h1>
+    <% if (account) { %>
+      <p><strong>ID de cuenta:</strong> <%= account.id_cuenta %></p>
+      <p><strong>Número:</strong> <%= account.numero_cuenta %></p>
+      <p><strong>Tipo:</strong> <%= account.tipo_cuenta || "AHORROS" %></p>
+      <p><strong>Saldo actual:</strong> ₡<%= Number(account.saldo_actual).toLocaleString("es-CR") %></p>
+      <p><strong>Estado:</strong> <%= account.estado %></p>
+      <p><strong>Fecha de creación:</strong> <%= new Date(account.fecha_creacion).toLocaleString("es-CR") %></p>
+      <a class="link-button" href="/transacciones?idCuenta=<%= account.id_cuenta %>">Ver transacciones</a>
+    <% } %>
+  </section>
+</main>
+
+<%- include("../partials/pageEnd") %>

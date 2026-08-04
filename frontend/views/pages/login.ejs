@@ -3,9 +3,9 @@
 
 <main class="page-center">
   <section class="auth-card">
-    <div class="brand">Acceso seguro</div>
+    <p class="brand">Acceso seguro</p>
     <h1>Iniciar sesión</h1>
-    <p class="subtitle">Ingresa tus credenciales para recibir el código MFA.</p>
+    <p class="subtitle">Ingrese sus credenciales para recibir el código MFA.</p>
 
     <%- include("../partials/message", { message, messageType }) %>
 
@@ -16,8 +16,8 @@
           type="email"
           name="correo"
           value="<%= values.correo || '' %>"
-          required
           autocomplete="email"
+          required
         >
       </label>
 
@@ -26,8 +26,8 @@
         <input
           type="password"
           name="password"
-          required
           autocomplete="current-password"
+          required
         >
       </label>
 
@@ -35,7 +35,10 @@
     </form>
 
     <p class="footer-text">
-      ¿No tienes cuenta? <a href="/register">Crear una cuenta</a>
+      <a href="/recuperar-password">¿Olvidó su contraseña?</a>
+    </p>
+    <p class="footer-text">
+      ¿No tiene una cuenta? <a href="/register">Registrarse</a>
     </p>
   </section>
 </main>

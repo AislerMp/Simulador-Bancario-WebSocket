@@ -1,35 +1,35 @@
 import env from "dotenv";
 import express from "express";
 import http from "http";
-import path from "path";
-import { fileURLToPath } from "url";
-import { initSocketServer } from './websocket/socketServer.js';
+import { initSocketServer } from "./websocket/socketServer.js";
+import { validateDatabaseSchema } from "./config/database.js";
+
 env.config();
 
 const app = express();
 const server = http.createServer(app);
-const PORT = process.env.PORT;
+const PORT = Number(process.env.PORT || 3000);
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+app.use(express.json({ limit: "64kb" }));
+app.use(express.urlencoded({ extended: true, limit: "64kb" }));
 
-// Permite recibir JSON en rutas HTTP si luego las usamos
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
-
-// Servir el frontend desde la carpeta frontend
-app.use(express.static(path.join(__dirname, "../../frontend")));
-
-// Ruta simple para probar que Express funciona
-app.get("/health", (req, res) => {
+app.get("/health", (_req, res) => {
   res.json({
     success: true,
-    message: "Servidor funcionando correctamente"
+    message: "Servidor funcionando correctamente",
   });
 });
 
-initSocketServer(server);
+async function startServer() {
+  await validateDatabaseSchema();
+  initSocketServer(server);
 
-server.listen(PORT, () => {
-  console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  server.listen(PORT, () => {
+    console.log(`Servidor ejecutándose en http://localhost:${PORT}`);
+  });
+}
+
+startServer().catch((error) => {
+  console.error("No fue posible iniciar el backend:", error.message);
+  process.exitCode = 1;
 });

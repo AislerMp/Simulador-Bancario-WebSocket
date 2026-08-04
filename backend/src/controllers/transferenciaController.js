@@ -1,136 +1,134 @@
 import {
   createSuccessResponse,
   createErrorResponse,
+  createNewError,
 } from "../utils/helpers.js";
-
 import { beginTransaction } from "../config/database.js";
-
 import {
   depositar,
   transferir,
   pagoServicio,
+  retirarEfectivo,
   getTransaccionesByCuenta,
   revertirTransaccion,
 } from "../services/transaccionService.js";
 
-export async function depositoController({
-  type,
-  payload,
-  requestId,
-  userToken,
-}) {
+async function runTransaction({ type, requestId, operation, successMessage }) {
   let transaction;
 
   try {
     transaction = await beginTransaction();
-
-    const resultado = await depositar(
-      { idCuentaDestino: payload?.idCuentaDestino, monto: payload?.monto },
-      transaction,
-    );
-
+    const data = await operation(transaction);
     await transaction.commit();
 
     return createSuccessResponse({
-      type: type,
+      type,
       requestId,
-      message: "Depósito realizado correctamente",
-      data: resultado,
+      message: successMessage,
+      data,
     });
   } catch (error) {
     if (transaction) {
-      await transaction.rollback();
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        console.error("No se pudo revertir la transacción SQL:", rollbackError.message);
+      }
     }
 
-    return createErrorResponse({
-      type: type,
-      requestId,
-      error,
-    });
+    return createErrorResponse({ type, requestId, error });
   }
 }
 
-export async function transferenciaController({
+export function depositoEfectivoController({
   type,
   payload,
   requestId,
   userToken,
 }) {
-  let transaction;
-
-  try {
-    transaction = await beginTransaction();
-
-    const resultado = await transferir(
-      {
-        idCuentaOrigen: payload?.idCuentaOrigen,
-        idCuentaDestino: payload?.idCuentaDestino,
-        monto: payload?.monto,
-      },
-      transaction,
-    );
-
-    await transaction.commit();
-
-    return createSuccessResponse({
-      type: type,
-      requestId,
-      message: "Transferencia realizada correctamente",
-      data: resultado,
-    });
-  } catch (error) {
-    if (transaction) {
-      await transaction.rollback();
-    }
-
-    return createErrorResponse({
-      type: type,
-      requestId,
-      error,
-    });
-  }
+  return runTransaction({
+    type,
+    requestId,
+    successMessage: "Depósito en efectivo realizado correctamente",
+    operation: (transaction) =>
+      depositar(
+        {
+          idCuentaDestino: Number(payload?.idCuentaDestino),
+          monto: Number(payload?.monto),
+        },
+        userToken,
+        transaction,
+      ),
+  });
 }
 
-export async function pagoServicioController({
+export function transferenciaController({
   type,
   payload,
   requestId,
   userToken,
 }) {
-  let transaction;
+  return runTransaction({
+    type,
+    requestId,
+    successMessage: "Transferencia realizada correctamente",
+    operation: (transaction) =>
+      transferir(
+        {
+          idCuentaOrigen: Number(payload?.idCuentaOrigen),
+          idCuentaDestino: Number(payload?.idCuentaDestino),
+          monto: Number(payload?.monto),
+        },
+        userToken,
+        transaction,
+      ),
+  });
+}
 
-  try {
-    transaction = await beginTransaction();
+export function pagoServicioController({
+  type,
+  payload,
+  requestId,
+  userToken,
+}) {
+  return runTransaction({
+    type,
+    requestId,
+    successMessage: "Pago de servicio realizado correctamente",
+    operation: (transaction) =>
+      pagoServicio(
+        {
+          idCuentaOrigen: Number(payload?.idCuentaOrigen),
+          nombreServicio: payload?.nombreServicio,
+          referenciaServicio: payload?.referenciaServicio,
+          monto: Number(payload?.monto),
+        },
+        userToken,
+        transaction,
+      ),
+  });
+}
 
-    const resultado = await pagoServicio(
-      {
-        idCuentaOrigen: payload?.idCuentaOrigen,
-        nombreServicio: payload?.nombreServicio,
-        referenciaServicio: payload?.referenciaServicio,
-        monto: payload?.monto,
-      },
-      transaction,
-    );
-
-    await transaction.commit();
-
-    return createSuccessResponse({
-      type: type,
-      requestId,
-      message: "Pago de servicio realizado correctamente",
-      data: resultado,
-    });
-  } catch (error) {
-    if (transaction) {
-      await transaction.rollback();
-    }
-
-    return createErrorResponse({
-      type: type,
-      requestId,
-      error,
-    });
-  }
+export function retiroEfectivoController({
+  type,
+  payload,
+  requestId,
+  userToken,
+}) {
+  return runTransaction({
+    type,
+    requestId,
+    successMessage: "Retiro en efectivo realizado correctamente",
+    operation: (transaction) =>
+      retirarEfectivo(
+        {
+          idCuentaOrigen: Number(payload?.idCuentaOrigen),
+          monto: Number(payload?.monto),
+        },
+        userToken,
+        transaction,
+      ),
+  });
 }
 
 export async function movimientosTransaccionController({
@@ -139,62 +137,49 @@ export async function movimientosTransaccionController({
   requestId,
   userToken,
 }) {
-  let transaction;
-
   try {
-    transaction = await beginTransaction();
-    const resultado = await getTransaccionesByCuenta(
-      payload?.idCuenta,
-      transaction,
+    const data = await getTransaccionesByCuenta(
+      Number(payload?.idCuenta),
+      userToken,
     );
 
     return createSuccessResponse({
-      type: type,
+      type,
       requestId,
       message: "Movimientos de transacciones obtenidos correctamente",
-      data: resultado,
+      data,
     });
   } catch (error) {
-    if (transaction) await transaction.rollback();
-
-    return createErrorResponse({
-      type: type,
-      requestId,
-      error,
-    });
+    return createErrorResponse({ type, requestId, error });
   }
 }
 
-export async function revertirTransaccionController({
+export function reversionController({
   type,
   payload,
   requestId,
   userToken,
 }) {
-  let transaction;
-  try {
-    transaction = await beginTransaction();
-
-    const resultado = await revertirTransaccion(
-      payload?.idTransaccion,
-      transaction,
-    );
-
-    await transaction.commit();
-    return createSuccessResponse({
-      type: type,
-      requestId,
-      message: "Transacción revertida correctamente",
-      data: resultado,
-    });
-  } catch (error) {
-    if (transaction) {
-      await transaction.rollback();
-    }
+  if (!payload?.idTransaccionOriginal) {
     return createErrorResponse({
-      type: type,
+      type,
       requestId,
-      error,
+      error: createNewError(
+        "La transacción original es obligatoria",
+        "TRANSACCION_REQUERIDA",
+      ),
     });
   }
+
+  return runTransaction({
+    type,
+    requestId,
+    successMessage: "Transacción revertida correctamente",
+    operation: (transaction) =>
+      revertirTransaccion(
+        Number(payload.idTransaccionOriginal),
+        userToken,
+        transaction,
+      ),
+  });
 }

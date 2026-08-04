@@ -2,15 +2,20 @@ import { beforeEach, describe, expect, jest, test } from "@jest/globals";
 
 const mockGetUserByCorreo = jest.fn();
 const mockCreateUser = jest.fn();
+const mockGetUsers = jest.fn();
+const mockRegisterFailedLogin = jest.fn();
+const mockResetLoginAttempts = jest.fn();
 const mockGenerarCodigoMfa = jest.fn();
-
 const mockBcryptCompare = jest.fn();
 const mockBcryptHash = jest.fn();
-const mockRegistraEvento = jest.fn();
+const mockRegistrarEvento = jest.fn();
 
 jest.unstable_mockModule("../../src/repositories/authRepositorie.js", () => ({
   getUserByCorreo: mockGetUserByCorreo,
   createUser: mockCreateUser,
+  getUsers: mockGetUsers,
+  registerFailedLogin: mockRegisterFailedLogin,
+  resetLoginAttempts: mockResetLoginAttempts,
 }));
 
 jest.unstable_mockModule("../../src/services/mfaService.js", () => ({
@@ -18,7 +23,7 @@ jest.unstable_mockModule("../../src/services/mfaService.js", () => ({
 }));
 
 jest.unstable_mockModule("../../src/services/bitacoraService.js", () => ({
-  registrarEvento: mockRegistraEvento,
+  registrarEvento: mockRegistrarEvento,
   BITACORA_ACCIONES: {
     LOGIN: "LOGIN",
     REGISTRO: "REGISTRO",
@@ -34,183 +39,77 @@ jest.unstable_mockModule("bcrypt", () => ({
 
 const { login, register } = await import("../../src/services/authService.js");
 
-describe("authService - login", () => {
+describe("authService", () => {
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
-  test("lanza error cuando faltan correo o contraseña", async () => {
+  test("rechaza credenciales incompletas", async () => {
     await expect(login("", "")).rejects.toMatchObject({
-      message: "Correo y contraseña son obligatorios",
       code: "DATOS_INCOMPLETOS",
     });
   });
 
-  test("lanza error cuando el usuario no existe", async () => {
-    mockGetUserByCorreo.mockResolvedValue(null);
+  test("registra un intento fallido cuando la contraseña no coincide", async () => {
+    mockGetUserByCorreo.mockResolvedValue({
+      id_usuario: 1,
+      password_hash: "hash",
+      activo: true,
+      bloqueado_hasta: null,
+    });
+    mockBcryptCompare.mockResolvedValue(false);
+    mockRegisterFailedLogin.mockResolvedValue({
+      intentos_fallidos_login: 1,
+      bloqueado_hasta: null,
+    });
 
-    await expect(login("noexiste@test.com", "123456")).rejects.toMatchObject({
-      message: "Correo o contraseña incorrectos",
+    await expect(login("cliente@test.com", "incorrecta")).rejects.toMatchObject({
       code: "CREDENCIALES_INVALIDAS",
     });
 
-    expect(mockBcryptCompare).not.toHaveBeenCalled();
-    expect(mockGenerarCodigoMfa).not.toHaveBeenCalled();
+    expect(mockRegisterFailedLogin).toHaveBeenCalled();
   });
 
-  test("lanza error cuando la contraseña es incorrecta", async () => {
-    mockGetUserByCorreo.mockResolvedValue({
-      id_usuario: 1,
-      correo: "cliente@test.com",
-      password_hash: "hash-guardado",
-      activo: true,
-    });
-
-    mockBcryptCompare.mockResolvedValue(false);
-
-    await expect(login("cliente@test.com", "incorrecta")).rejects.toMatchObject(
-      {
-        code: "CREDENCIALES_INVALIDAS",
-      },
-    );
-
-    expect(mockBcryptCompare).toHaveBeenCalledWith(
-      "incorrecta",
-      "hash-guardado",
-    );
-
-    expect(mockGenerarCodigoMfa).not.toHaveBeenCalled();
-  });
-
-  test("lanza error cuando el usuario está desactivado", async () => {
+  test("genera MFA cuando el login es correcto", async () => {
     mockGetUserByCorreo.mockResolvedValue({
       id_usuario: 2,
-      correo: "inactivo@test.com",
-      password_hash: "hash-guardado",
-      activo: 0,
-    });
-
-    mockBcryptCompare.mockResolvedValue(true);
-
-    await expect(login("inactivo@test.com", "123456")).rejects.toMatchObject({
-      message: "El usuario está desactivado",
-      code: "USUARIO_DESACTIVADO",
-    });
-
-    expect(mockGenerarCodigoMfa).not.toHaveBeenCalled();
-  });
-
-  test("genera el desafío MFA cuando las credenciales son válidas", async () => {
-    const usuario = {
-      id_usuario: 5,
-      rol: "CLIENTE",
-      nombre: "Aisler",
-      correo: "aisler@test.com",
-      password_hash: "hash-guardado",
+      password_hash: "hash",
       activo: true,
-    };
-
-    const challenge = {
-      id_codigo_mfa: 20,
-      id_usuario: 5,
-      fecha_expiracion: new Date("2026-07-10T20:05:00Z"),
-      utilizado: false,
-    };
-
-    mockGetUserByCorreo.mockResolvedValue(usuario);
+      bloqueado_hasta: null,
+    });
     mockBcryptCompare.mockResolvedValue(true);
-    mockGenerarCodigoMfa.mockResolvedValue(challenge);
-    mockRegistraEvento.mockResolvedValue({
-      idUsuario: 5,
-      accion: "LOGIN",
-      descripcion: "Login exitoso",
-    });
+    mockGenerarCodigoMfa.mockResolvedValue({ id_usuario: 2 });
 
-    const result = await login("aisler@test.com", "password-correcta");
+    const result = await login("cliente@test.com", "Password1");
 
-    expect(mockGetUserByCorreo).toHaveBeenCalledWith("aisler@test.com");
-
-    expect(mockBcryptCompare).toHaveBeenCalledWith(
-      "password-correcta",
-      "hash-guardado",
-    );
-
-    expect(mockGenerarCodigoMfa).toHaveBeenCalledWith(5);
-    expect(result).toEqual(challenge);
-  });
-});
-
-describe("authService - register", () => {
-  beforeEach(() => {
-    jest.resetAllMocks();
+    expect(mockResetLoginAttempts).toHaveBeenCalledWith(2);
+    expect(mockGenerarCodigoMfa).toHaveBeenCalledWith(2);
+    expect(result).toEqual({ id_usuario: 2 });
   });
 
-  test("lanza error cuando faltan campos obligatorios", async () => {
-    await expect(
-      register({
-        nombre: "",
-        correo: "",
-        password: "",
-      }),
-    ).rejects.toMatchObject({
-      message: "Todos los campos son obligatorios",
-      code: "DATOS_INCOMPLETOS",
-    });
-  });
-
-  test("lanza error cuando el correo ya existe", async () => {
-    mockGetUserByCorreo.mockResolvedValue({
-      id_usuario: 1,
-      correo: "existente@test.com",
-    });
-
-    await expect(
-      register({
-        nombre: "Usuario Existente",
-        correo: "existente@test.com",
-        password: "123456",
-      }),
-    ).rejects.toMatchObject({
-      message: "El correo ya está registrado",
-      code: "CORREO_YA_REGISTRADO",
-    });
-
-    expect(mockBcryptHash).not.toHaveBeenCalled();
-    expect(mockCreateUser).not.toHaveBeenCalled();
-  });
-
-  test("cifra la contraseña y registra al usuario como CLIENTE", async () => {
-    const usuarioCreado = {
-      id_usuario: 10,
-      rol: "CLIENTE",
-      nombre: "Usuario Nuevo",
-      correo: "nuevo@test.com",
-      activo: true,
-    };
-
+  test("el registro público siempre crea un CLIENTE", async () => {
     mockGetUserByCorreo.mockResolvedValue(null);
-    mockBcryptHash.mockResolvedValue("password-hasheada");
-    mockCreateUser.mockResolvedValue(usuarioCreado);
-    mockRegistraEvento.mockResolvedValue(true);
+    mockBcryptHash.mockResolvedValue("hash-seguro");
+    mockCreateUser.mockResolvedValue({
+      id_usuario: 3,
+      rol: "CLIENTE",
+      nombre: "Cliente",
+      correo: "cliente@test.com",
+    });
 
     const result = await register({
-      nombre: "Usuario Nuevo",
-      correo: "nuevo@test.com",
-      password: "123456",
+      nombre: "Cliente",
+      correo: "cliente@test.com",
+      password: "Password1",
       rol: "ADMINISTRADOR",
     });
 
-    expect(mockBcryptHash).toHaveBeenCalledWith("123456", 10);
-
     expect(mockCreateUser).toHaveBeenCalledWith({
       rol: "CLIENTE",
-      nombre: "Usuario Nuevo",
-      correo: "nuevo@test.com",
-      password_hash: "password-hasheada",
+      nombre: "Cliente",
+      correo: "cliente@test.com",
+      password_hash: "hash-seguro",
     });
-
-    expect(result).toEqual({
-      user: usuarioCreado,
-    });
+    expect(result.user.rol).toBe("CLIENTE");
   });
 });

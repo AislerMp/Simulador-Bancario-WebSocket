@@ -1,47 +1,53 @@
 import { getConnection, sql, createRequest } from "../config/database.js";
 
-export async function createMovimiento({
-  idUsuario,
-  accion,
-  descripcion,
-  ip_origen,
-}, transaction = null) {
+export async function createMovimiento(
+  { idUsuario, accion, descripcion, ip_origen },
+  transaction = null,
+) {
   const request = await createRequest(transaction);
-
   const result = await request
     .input("id_usuario", sql.Int, idUsuario)
-    .input("accion", sql.VarChar, accion)
-    .input("descripcion", sql.VarChar, descripcion)
-    .input("ip_origen", sql.VarChar, ip_origen).query(`
-        INSERT INTO Bitacora (id_usuario, accion, descripcion, ip_origen) 
-        OUTPUT
-            INSERTED.id_bitacora,
-            INSERTED.id_usuario,
-            INSERTED.accion,
-            INSERTED.descripcion,
-            INSERTED.fecha_hora,
-            INSERTED.ip_origen
-        VALUES (@id_usuario, @accion, @descripcion, @ip_origen);
+    .input("accion", sql.VarChar(80), accion)
+    .input("descripcion", sql.VarChar(255), descripcion)
+    .input("ip_origen", sql.VarChar(45), ip_origen)
+    .query(`
+      INSERT INTO dbo.Bitacora
+        (id_usuario, accion, descripcion, ip_origen)
+      OUTPUT INSERTED.*
+      VALUES (@id_usuario, @accion, @descripcion, @ip_origen);
     `);
 
-  console.log("Movimiento creado", result);
   return result.recordset[0] || null;
 }
 
 export async function getMovimientosUsuario(idUsuario) {
   const pool = await getConnection();
-
   const result = await pool
     .request()
     .input("id_usuario", sql.Int, idUsuario)
-    .query("SELECT * FROM Bitacora WHERE id_usuario = @id_usuario;");
+    .query(`
+      SELECT *
+      FROM dbo.Bitacora
+      WHERE id_usuario = @id_usuario
+      ORDER BY fecha_hora DESC;
+    `);
 
-  console.log("Movimientos por usuario", idUsuario, result);
-  return result.recordset || null;
+  return result.recordset || [];
 }
 
 export async function getMovimientos() {
   const pool = await getConnection();
-  const result = await pool.request().query("SELECT * FROM Bitacora;");
-  return result.recordset || null;
+  const result = await pool.request().query(`
+    SELECT
+      b.*,
+      u.nombre AS nombre_usuario,
+      u.correo AS correo_usuario,
+      u.rol AS rol_usuario
+    FROM dbo.Bitacora AS b
+    LEFT JOIN dbo.Usuario AS u
+      ON u.id_usuario = b.id_usuario
+    ORDER BY b.fecha_hora DESC;
+  `);
+
+  return result.recordset || [];
 }

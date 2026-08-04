@@ -1,0 +1,256 @@
+<%- include("../partials/pageStart", { title }) %>
+<%- include("../partials/header", { showLogout }) %>
+
+<%
+  const clientes = Array.isArray(users) ? users : [];
+  const cuentasAdministrativas = Array.isArray(adminAccounts)
+    ? adminAccounts
+    : [];
+%>
+
+<main class="dashboard">
+  <section class="welcome-card">
+    <h1>Administración de cuentas</h1>
+    <p>Funciones exclusivas del plataformista o administrador.</p>
+    <%- include("../partials/message", { message, messageType }) %>
+  </section>
+
+  <section class="grid">
+    <article class="info-card">
+      <h2>Crear cuenta bancaria</h2>
+      <p>Seleccione el cliente al que se le creará una nueva cuenta.</p>
+
+      <% if (clientes.length === 0) { %>
+        <p>No hay clientes disponibles.</p>
+      <% } else { %>
+        <form class="form" action="/admin/cuentas/crear" method="POST">
+          <label>
+            Cliente
+            <select name="idUsuario" required>
+              <option value="">Seleccione un cliente</option>
+              <% clientes.forEach((client) => { %>
+                <option value="<%= client.id_usuario %>">
+                  <%= client.nombre %> — <%= client.correo %>
+                </option>
+              <% }) %>
+            </select>
+          </label>
+          <button type="submit">Crear cuenta</button>
+        </form>
+      <% } %>
+    </article>
+
+    <article class="info-card">
+      <h2>Cambiar estado</h2>
+      <p>Busque al cliente por correo y seleccione una de sus cuentas.</p>
+
+      <% if (cuentasAdministrativas.length === 0) { %>
+        <p>No hay cuentas bancarias registradas.</p>
+      <% } else { %>
+        <form class="form" action="/admin/cuentas/estado" method="POST">
+          <label>
+            Correo electrónico del cliente
+            <input
+              type="email"
+              id="correoConsultaCuenta"
+              placeholder="cliente@correo.com"
+              autocomplete="off"
+            >
+          </label>
+
+          <button type="button" id="buscarCuentasCorreo">
+            Consultar cuentas
+          </button>
+
+          <p id="resultadoConsultaCuenta" class="subtitle"></p>
+
+          <label>
+            Cuenta bancaria
+            <select
+              name="cuentaSeleccionada"
+              id="cuentaSeleccionada"
+              required
+              disabled
+            >
+              <option value="">Primero consulte un correo</option>
+            </select>
+          </label>
+
+          <label>
+            Nuevo estado
+            <select name="estadoCuenta" required>
+              <option value="">Seleccione un estado</option>
+              <option value="ACTIVA">ACTIVA</option>
+              <option value="BLOQUEADA">BLOQUEADA</option>
+              <option value="INACTIVA">INACTIVA</option>
+            </select>
+          </label>
+
+          <button type="submit" id="actualizarEstadoCuenta" disabled>
+            Actualizar estado
+          </button>
+        </form>
+      <% } %>
+    </article>
+
+    <article class="info-card">
+      <h2>Depósito en efectivo</h2>
+      <p>Registre el efectivo entregado por el cliente.</p>
+
+      <% if (cuentasAdministrativas.length === 0) { %>
+        <p>No hay cuentas disponibles.</p>
+      <% } else { %>
+        <form class="form" action="/admin/cuentas/deposito" method="POST">
+          <label>
+            Cuenta bancaria
+            <select name="cuentaDeposito" required>
+              <option value="">Seleccione una cuenta</option>
+              <% cuentasAdministrativas.forEach((account) => { %>
+                <option value="<%= account.id_cuenta %>|<%= account.id_usuario %>">
+                  <%= account.numero_cuenta %> — <%= account.nombre_usuario %>
+                  — <%= account.correo_usuario %> — <%= account.estado %>
+                </option>
+              <% }) %>
+            </select>
+          </label>
+
+          <label>
+            Monto recibido
+            <input
+              type="number"
+              name="montoDeposito"
+              min="1"
+              step="1"
+              required
+            >
+          </label>
+
+          <button type="submit">Aplicar depósito</button>
+        </form>
+      <% } %>
+    </article>
+
+    <article class="info-card">
+      <h2>Retiro en efectivo</h2>
+      <p>Registre el efectivo entregado al cliente y descuéntelo de su cuenta.</p>
+
+      <% if (cuentasAdministrativas.length === 0) { %>
+        <p>No hay cuentas disponibles.</p>
+      <% } else { %>
+        <form class="form" action="/admin/cuentas/retiro" method="POST">
+          <label>
+            Cuenta bancaria
+            <select name="cuentaRetiro" required>
+              <option value="">Seleccione una cuenta</option>
+              <% cuentasAdministrativas.forEach((account) => { %>
+                <option value="<%= account.id_cuenta %>|<%= account.id_usuario %>">
+                  <%= account.numero_cuenta %> — <%= account.nombre_usuario %>
+                  — Saldo ₡<%= Number(account.saldo_actual).toLocaleString("es-CR") %>
+                  — <%= account.estado %>
+                </option>
+              <% }) %>
+            </select>
+          </label>
+
+          <label>
+            Monto a retirar
+            <input
+              type="number"
+              name="montoRetiro"
+              min="1"
+              step="1"
+              required
+            >
+          </label>
+
+          <button type="submit">Aplicar retiro</button>
+        </form>
+      <% } %>
+    </article>
+  </section>
+</main>
+
+<div
+  id="datosCuentasAdministrativas"
+  data-cuentas="<%= JSON.stringify(cuentasAdministrativas) %>"
+  hidden
+></div>
+
+<script>
+  const dataElement = document.getElementById("datosCuentasAdministrativas");
+  let listaCuentas = [];
+
+  try {
+    listaCuentas = JSON.parse(dataElement?.dataset.cuentas || "[]");
+  } catch (error) {
+    console.error("No se pudieron cargar las cuentas administrativas");
+  }
+
+  const correoInput = document.getElementById("correoConsultaCuenta");
+  const buscarButton = document.getElementById("buscarCuentasCorreo");
+  const cuentaSelect = document.getElementById("cuentaSeleccionada");
+  const resultado = document.getElementById("resultadoConsultaCuenta");
+  const actualizarButton = document.getElementById("actualizarEstadoCuenta");
+
+  function resetSelect(texto) {
+    if (!cuentaSelect || !actualizarButton) return;
+    cuentaSelect.innerHTML = "";
+    const option = document.createElement("option");
+    option.value = "";
+    option.textContent = texto;
+    cuentaSelect.appendChild(option);
+    cuentaSelect.disabled = true;
+    actualizarButton.disabled = true;
+  }
+
+  function buscarCuentas() {
+    if (!correoInput || !cuentaSelect || !resultado || !actualizarButton) {
+      return;
+    }
+
+    const correo = String(correoInput.value || "").trim().toLowerCase();
+    if (!correo) {
+      resultado.textContent = "Ingrese el correo del cliente.";
+      resetSelect("Primero consulte un correo");
+      return;
+    }
+
+    const encontradas = listaCuentas.filter(
+      (cuenta) =>
+        String(cuenta.correo_usuario || "").trim().toLowerCase() === correo,
+    );
+
+    cuentaSelect.innerHTML = "";
+    const initial = document.createElement("option");
+    initial.value = "";
+    initial.textContent = "Seleccione una cuenta";
+    cuentaSelect.appendChild(initial);
+
+    if (encontradas.length === 0) {
+      resultado.textContent = "No se encontraron cuentas para ese correo.";
+      resetSelect("No hay cuentas disponibles");
+      return;
+    }
+
+    encontradas.forEach((cuenta) => {
+      const option = document.createElement("option");
+      option.value = `${cuenta.id_cuenta}|${cuenta.id_usuario}`;
+      option.textContent = `${cuenta.numero_cuenta} — ${cuenta.estado}`;
+      cuentaSelect.appendChild(option);
+    });
+
+    resultado.textContent = `Se encontraron ${encontradas.length} cuenta(s).`;
+    cuentaSelect.disabled = false;
+    actualizarButton.disabled = false;
+  }
+
+  buscarButton?.addEventListener("click", buscarCuentas);
+  correoInput?.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      buscarCuentas();
+    }
+  });
+</script>
+
+<%- include("../partials/pageEnd") %>
