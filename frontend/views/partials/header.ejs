@@ -1,7 +1,11 @@
 <header class="topbar">
   <div class="topbar-content">
     <a class="brand-link" href="<%= showLogout ? '/dashboard' : '/login' %>">
-      🏦 Simulador Bancario
+      <span class="brand-mark" aria-hidden="true">SB</span>
+      <span class="brand-copy">
+        <span>Simulador</span>
+        <strong>Bancario</strong>
+      </span>
     </a>
 
     <% if (showLogout) { %>

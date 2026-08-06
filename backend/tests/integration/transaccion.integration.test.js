@@ -23,13 +23,11 @@ import {
 import { getCuentaById } from "../../src/repositories/cuentaBancariaRepositorie.js";
 
 describe("Integración - Depósito", () => {
-  // Después de todas las pruebas, cerramos la conexión a la base de datos
   afterAll(async () => {
     await closeConnection();
   });
 
   test("Debe realizar correctamente un depósito", async () => {
-    // Iniciamos una transacción para que los cambios no se guarden en la base de datos
     const transaction = await beginTransaction();
 
     try {
@@ -58,14 +56,12 @@ describe("Integración - Depósito", () => {
         Number(cuentaAntes.saldo_actual) + 1000,
       );
     } finally {
-      // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
       await transaction.rollback();
     }
   });
 });
 
 describe("Integración - Transferencia", () => {
-  // Después de todas las pruebas, cerramos la conexión a la base de datos
   afterAll(async () => {
     await closeConnection();
   });
@@ -118,14 +114,12 @@ describe("Integración - Transferencia", () => {
         Number(cuentaDestinoAntes.saldo_actual) + monto,
       );
     } finally {
-      // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
       await transaction.rollback();
     }
   });
 });
 
 describe("Integración - Pago de servicio", () => {
-  // Después de todas las pruebas, cerramos la conexión a la base de datos
   afterAll(async () => {
     await closeConnection();
   });
@@ -167,7 +161,6 @@ describe("Integración - Pago de servicio", () => {
         Number(cuentaOrigenAntes.saldo_actual) - monto,
       );
     } finally {
-      // Hacemos rollback de la transacción para que los cambios no se guarden en la base de datos
       await transaction.rollback();
     }
   });

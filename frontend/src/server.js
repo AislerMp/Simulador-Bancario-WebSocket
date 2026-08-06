@@ -14,13 +14,10 @@ const __dirname = path.dirname(__filename);
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "../views"));
 
-// Permite leer los datos enviados por formularios HTML.
 app.use(express.urlencoded({ extended: false }));
 
-// Sirve únicamente CSS, imágenes y otros recursos públicos.
 app.use(express.static(path.join(__dirname, "../public")));
 
-// Agrega req.session a cada solicitud HTTP.
 app.use(createSessionMiddleware());
 
 app.use(webRoutes);
