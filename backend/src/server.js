@@ -21,7 +21,6 @@ app.get("/health", (_req, res) => {
 });
 
 async function startServer() {
-  await validateDatabaseSchema();
   initSocketServer(server);
 
   server.listen(PORT, () => {

@@ -33,6 +33,9 @@ export async function generarCodigoMfa(idUsuario) {
   }
 
   const codigo = randomInt(100000, 1000000).toString();
+
+  console.log(`Código MFA generado para el usuario ${idUsuario}: ${codigo}`);
+  
   const codigoMfahash = await bcrypt.hash(codigo, 10);
   const fechaExpiracion = new Date(
     Date.now() + MFA_EXPIRATION_MINUTES * 60 * 1000,
