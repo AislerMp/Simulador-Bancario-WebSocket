@@ -28,7 +28,7 @@
           <% movements.forEach((item) => { %>
             <tr>
               <td><%= item.id_bitacora %></td>
-              <td><%= item.id_usuario %></td>
+              <td><%= item.nombre_usuario %></td>
               <td><%= item.accion %></td>
               <td><%= item.descripcion %></td>
               <td><%= new Date(item.fecha_hora).toLocaleString("es-CR") %></td>
